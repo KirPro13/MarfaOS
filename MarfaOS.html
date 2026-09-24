@@ -1,0 +1,1954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MarfaOS 12</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+    body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; height: 100vh; overflow: hidden; color: #fff; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 10px; }
+
+    #desktop { position: fixed; inset: 0; background: #1a1a2e; background-size: cover; background-position: center; z-index: 0; transition: background 0.6s ease; }
+    #desktop-icons { position: absolute; top: 20px; left: 20px; right: 20px; bottom: 80px; display: flex; flex-direction: column; flex-wrap: wrap; gap: 14px; z-index: 2; pointer-events: none; align-content: flex-start; }
+    .desktop-icon { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 80px; padding: 8px 4px; border-radius: 10px; cursor: pointer; pointer-events: auto; transition: background 0.15s; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.7); }
+    .desktop-icon:hover { background: rgba(255,255,255,0.15); }
+    .desktop-icon:active { transform: scale(0.96); }
+    .desktop-icon .icon { font-size: 40px; line-height: 1.2; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+    .desktop-icon .label { font-size: 12px; text-align: center; margin-top: 4px; line-height: 1.3; max-width: 72px; word-wrap: break-word; background: rgba(0,0,0,0.4); padding: 2px 8px; border-radius: 6px; backdrop-filter: blur(4px); }
+
+    .website-shortcut .icon-box { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.45); margin-bottom: 2px; text-transform: uppercase; letter-spacing: -0.5px; border: 1px solid rgba(255,255,255,0.15); }
+    .website-shortcut .label { background: rgba(0,0,0,0.5); }
+
+    #desktop-context { display: none; position: fixed; background: rgba(40,40,60,0.95); backdrop-filter: blur(20px); border-radius: 12px; padding: 6px 0; min-width: 220px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.08); z-index: 9999; }
+    #desktop-context .item { padding: 8px 20px; cursor: pointer; font-size: 13px; color: #e8e8f0; transition: background 0.1s; display: flex; align-items: center; gap: 12px; }
+    #desktop-context .item:hover { background: rgba(255,255,255,0.1); }
+    #desktop-context .item .icon { font-size: 16px; width: 24px; text-align: center; }
+    #desktop-context .sep { height: 1px; background: rgba(255,255,255,0.08); margin: 4px 12px; }
+
+    #taskbar { position: fixed; bottom: 0; left: 0; width: 100%; height: 54px; background: rgba(30,30,50,0.8); backdrop-filter: blur(24px) saturate(1.4); border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; padding: 0 12px; z-index: 999; gap: 4px; }
+    #taskbar.left { flex-direction: column; width: 54px; height: 100%; bottom: 0; left: 0; top: 0; padding: 8px 4px; border-top: none; border-right: 1px solid rgba(255,255,255,0.08); }
+    #taskbar.left .tb-center { flex-direction: column; flex: 1; width: 100%; gap: 4px; }
+    #taskbar.left .tb-right { flex-direction: column; gap: 8px; }
+    #taskbar.left .tb-left { flex-direction: column; }
+    #taskbar.left .taskbar-item { width: 100%; justify-content: center; }
+    #taskbar.left .taskbar-item .label { display: none; }
+    #taskbar.top { bottom: auto; top: 0; border-top: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .tb-left, .tb-center, .tb-right { display: flex; align-items: center; gap: 4px; height: 100%; }
+    .tb-center { flex: 1; justify-content: center; gap: 2px; overflow-x: auto; padding: 0 8px; }
+    .tb-right { gap: 8px; font-size: 13px; color: #ddd; white-space: nowrap; padding-right: 4px; }
+    #taskbar .taskbar-item { display: flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 8px; cursor: pointer; transition: all 0.15s; height: 38px; min-width: 40px; justify-content: center; background: transparent; border: none; color: #ddd; font-size: 13px; }
+    #taskbar .taskbar-item:hover { background: rgba(255,255,255,0.1); }
+    #taskbar .taskbar-item.active { background: rgba(255,255,255,0.15); }
+    #taskbar .taskbar-item .icon { font-size: 18px; }
+    #taskbar .taskbar-item .label { font-size: 12px; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #start-btn { font-size: 22px; padding: 4px 10px; border-radius: 10px; cursor: pointer; transition: background 0.15s; background: transparent; border: none; color: #ddd; }
+    #start-btn:hover { background: rgba(255,255,255,0.12); }
+    #clock { font-variant-numeric: tabular-nums; font-weight: 500; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; font-size: 12px; padding: 2px 8px; border-radius: 6px; }
+    #clock .time { font-size: 14px; font-weight: 600; }
+    #clock .date { font-size: 11px; opacity: 0.7; }
+
+    #start-menu { display: none; position: fixed; bottom: 62px; left: 8px; width: 600px; max-height: 70vh; background: rgba(40,40,60,0.95); backdrop-filter: blur(40px) saturate(1.6); border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 30px 80px rgba(0,0,0,0.6); z-index: 9998; padding: 16px 20px 20px; flex-direction: column; }
+    #start-menu.open { display: flex; }
+    #start-menu .search-box { display: flex; align-items: center; background: rgba(255,255,255,0.08); border-radius: 10px; padding: 6px 14px; gap: 10px; margin-bottom: 14px; }
+    #start-menu .search-box input { background: transparent; border: none; outline: none; color: #fff; font-size: 14px; width: 100%; }
+    #start-menu .search-box input::placeholder { color: rgba(255,255,255,0.4); }
+    #start-menu .sm-body { display: flex; gap: 20px; flex: 1; overflow: hidden; }
+    #start-menu .sm-left { flex: 1; overflow-y: auto; padding-right: 6px; }
+    #start-menu .sm-left .app-item { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    #start-menu .sm-left .app-item:hover { background: rgba(255,255,255,0.08); }
+    #start-menu .sm-left .app-item .icon { font-size: 18px; width: 28px; text-align: center; }
+    #start-menu .sm-right { width: 200px; border-left: 1px solid rgba(255,255,255,0.06); padding-left: 16px; overflow-y: auto; }
+    #start-menu .sm-right .pinned-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.5; margin-bottom: 8px; font-weight: 600; }
+    #start-menu .sm-right .pinned-item { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+    #start-menu .sm-right .pinned-item:hover { background: rgba(255,255,255,0.08); }
+    #start-menu .sm-right .pinned-item .icon { font-size: 18px; width: 26px; text-align: center; }
+    #start-menu .sm-footer { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: flex-end; gap: 12px; font-size: 12px; color: rgba(255,255,255,0.5); }
+
+    .window { position: fixed; min-width: 320px; min-height: 200px; background: rgba(45,45,65,0.92); backdrop-filter: blur(30px) saturate(1.4); border-radius: 14px; border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 20px 60px rgba(0,0,0,0.5); display: none; flex-direction: column; z-index: 100; overflow: hidden; }
+    .window.open { display: flex; }
+    .window.minimized { display: none !important; }
+    .window.maximized { border-radius: 0 !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; bottom: 54px !important; }
+    .window .win-header { display: flex; align-items: center; padding: 8px 12px; gap: 8px; background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.04); cursor: grab; flex-shrink: 0; min-height: 40px; }
+    .window .win-header:active { cursor: grabbing; }
+    .window .win-header .win-icon { font-size: 16px; opacity: 0.7; }
+    .window .win-header .win-title { flex: 1; font-size: 13px; font-weight: 500; color: #e8e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .window .win-header .win-controls { display: flex; gap: 6px; align-items: center; }
+    .window .win-header .win-controls button { width: 28px; height: 28px; border: none; border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; background: transparent; color: #ccc; line-height: 1; }
+    .window .win-header .win-controls button:hover { background: rgba(255,255,255,0.1); }
+    .window .win-header .win-controls .close-btn:hover { background: #ff3b30; color: #fff; }
+    .window .win-body { flex: 1; padding: 12px 16px; overflow: auto; color: #e0e0e8; font-size: 14px; line-height: 1.5; display: flex; flex-direction: column; }
+    .window .win-body::-webkit-scrollbar { width: 4px; }
+    .window .win-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+    .explorer-sidebar { display: flex; gap: 12px; height: 100%; flex: 1; min-height: 0; }
+    .explorer-sidebar .sidebar { width: 180px; background: rgba(255,255,255,0.03); border-radius: 8px; padding: 8px 4px; flex-shrink: 0; overflow-y: auto; }
+    .explorer-sidebar .sidebar .item { padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+    .explorer-sidebar .sidebar .item:hover { background: rgba(255,255,255,0.06); }
+    .explorer-sidebar .main { flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+    .explorer-sidebar .main .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .explorer-sidebar .main .toolbar button { padding: 4px 14px; border: none; border-radius: 6px; background: rgba(255,255,255,0.08); color: #ddd; cursor: pointer; font-size: 12px; }
+    .explorer-sidebar .main .toolbar button:hover { background: rgba(255,255,255,0.15); }
+    .explorer-sidebar .main .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; flex: 1; align-content: start; padding: 4px; overflow-y: auto; }
+    .explorer-sidebar .main .file-grid .file-item { display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 8px; cursor: pointer; font-size: 12px; text-align: center; gap: 4px; }
+    .explorer-sidebar .main .file-grid .file-item:hover { background: rgba(255,255,255,0.06); }
+    .explorer-sidebar .main .file-grid .file-item .icon { font-size: 32px; }
+    .explorer-sidebar .main .file-grid .file-item .name { font-size: 11px; word-wrap: break-word; max-width: 70px; line-height: 1.2; }
+
+    .explorer-sidebar .main .search-bar { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 4px 10px; transition: border-color 0.15s; }
+    .explorer-sidebar .main .search-bar:focus-within { border-color: #007aff; background: rgba(0,122,255,0.06); }
+    .explorer-sidebar .main .search-bar input[type="text"] { flex: 1; background: transparent; border: none; outline: none; color: #fff; font-size: 13px; padding: 5px 0; }
+    .explorer-sidebar .main .search-bar input[type="text"]::placeholder { color: rgba(255,255,255,0.35); }
+    .explorer-sidebar .main .search-bar .search-clear { display: none; width: 20px; height: 20px; border: none; border-radius: 50%; background: rgba(255,255,255,0.1); color: #ccc; cursor: pointer; font-size: 11px; align-items: center; justify-content: center; padding: 0; line-height: 1; }
+    .explorer-sidebar .main .search-bar .search-clear:hover { background: rgba(255,59,48,0.6); color: #fff; }
+    .explorer-sidebar .main .search-bar .search-recursive { display: flex; align-items: center; gap: 4px; font-size: 11px; opacity: 0.7; cursor: pointer; user-select: none; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+    .explorer-sidebar .main .search-bar .search-recursive:hover { opacity: 1; background: rgba(255,255,255,0.05); }
+    .explorer-sidebar .main .search-bar .search-recursive input { cursor: pointer; accent-color: #007aff; }
+    .explorer-sidebar .main .search-status { font-size: 11px; padding: 4px 8px; border-radius: 6px; background: rgba(0,122,255,0.1); border: 1px solid rgba(0,122,255,0.2); color: #5ac8fa; margin: 4px 0; }
+    .explorer-sidebar .main .search-status b { color: #fff; }
+    .file-item .file-path { font-size: 9px; opacity: 0.45; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+    .file-item mark.hl { background: rgba(255,204,0,0.4); color: #ffcc00; border-radius: 3px; padding: 0 2px; font-weight: 600; }
+
+    .cp-tabs { display: flex; gap: 4px; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 16px; padding-bottom: 4px; flex-wrap: wrap; }
+    .cp-tabs .tab { padding: 6px 16px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 13px; background: transparent; border: none; color: rgba(255,255,255,0.6); }
+    .cp-tabs .tab:hover { background: rgba(255,255,255,0.05); color: #fff; }
+    .cp-tabs .tab.active { background: rgba(255,255,255,0.08); color: #fff; font-weight: 500; }
+    .cp-content .cp-pane { display: none; }
+    .cp-content .cp-pane.active { display: block; }
+    .cp-pane .setting-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; }
+    .cp-pane .setting-row .label { font-size: 13px; opacity: 0.8; }
+    .cp-pane .pc-info { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin-top: 8px; font-size: 13px; }
+    .cp-pane .pc-info .info-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+    .cp-pane .pc-info .info-item .key { opacity: 0.6; }
+    .cp-pane .pc-info .info-item .val { font-weight: 500; }
+    .cp-pane .storage-bar { display: flex; height: 8px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; margin: 8px 0 12px; }
+    .cp-pane .storage-bar .fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, #007aff, #5ac8fa); }
+    .cp-pane .disk-item { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+
+    .perso-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .perso-grid .card { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 12px 16px; }
+    .perso-grid .card .title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.5; margin-bottom: 8px; font-weight: 600; }
+    .perso-grid .card .option-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .perso-grid .card .option-group .opt { padding: 4px 14px; border-radius: 6px; background: rgba(255,255,255,0.06); cursor: pointer; font-size: 12px; border: 1px solid transparent; }
+    .perso-grid .card .option-group .opt:hover { background: rgba(255,255,255,0.12); }
+    .perso-grid .card .option-group .opt.active { background: rgba(0,122,255,0.3); border-color: #007aff; }
+    .perso-grid .card .color-palette { display: flex; gap: 6px; flex-wrap: wrap; }
+    .perso-grid .card .color-palette .c { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+    .perso-grid .card .color-palette .c:hover { transform: scale(1.1); }
+    .perso-grid .card .color-palette .c.active { border-color: #fff; box-shadow: 0 0 0 2px #007aff; }
+    .perso-grid .card .wallpaper-opt { display: flex; gap: 8px; flex-wrap: wrap; }
+    .perso-grid .card .wallpaper-opt .wp { width: 80px; height: 50px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; }
+    .perso-grid .card .wallpaper-opt .wp.active { border-color: #fff; box-shadow: 0 0 0 2px #007aff; }
+    .perso-grid .card .url-input-group { display: flex; gap: 6px; margin-top: 6px; }
+    .perso-grid .card .url-input-group input { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 4px 10px; color: #ddd; font-size: 12px; outline: none; }
+    .perso-grid .card .url-input-group button { padding: 4px 14px; border: none; border-radius: 6px; background: #007aff; color: #fff; cursor: pointer; font-size: 12px; }
+
+    .btn { padding: 8px 18px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.15s; display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: #007aff; color: #fff; }
+    .btn-primary:hover { background: #0055b3; }
+    .btn-secondary { background: rgba(255,255,255,0.08); color: #ddd; }
+    .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+    .btn-success { background: #34c759; color: #fff; }
+    .btn-success:hover { background: #2a9d47; }
+    .btn-danger { background: rgba(255,59,48,0.85); color: #fff; }
+    .btn-danger:hover { background: #ff3b30; }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .app-calc .display { background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px 16px; text-align: right; margin-bottom: 12px; min-height: 60px; display: flex; align-items: flex-end; justify-content: flex-end; flex-direction: column; }
+    .app-calc .display .expr { font-size: 14px; opacity: 0.5; }
+    .app-calc .display .result { font-size: 32px; font-weight: 400; }
+    .app-calc .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .app-calc .grid button { padding: 12px 0; border: none; border-radius: 8px; font-size: 18px; cursor: pointer; background: rgba(255,255,255,0.06); color: #e8e8f0; }
+    .app-calc .grid button:hover { background: rgba(255,255,255,0.14); }
+    .app-calc .grid button.op { background: rgba(0,122,255,0.25); color: #5ac8fa; }
+    .app-calc .grid button.eq { background: #007aff; color: #fff; }
+
+    .app-notepad { display: flex; flex-direction: column; height: 100%; }
+    .app-notepad .np-toolbar { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .app-notepad .np-toolbar button { padding: 5px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; background: rgba(255,255,255,0.08); color: #ddd; }
+    .app-notepad .np-toolbar button:hover { background: rgba(255,255,255,0.15); }
+    .app-notepad .np-toolbar button.save { background: rgba(0,122,255,0.3); color: #5ac8fa; }
+    .app-notepad .np-toolbar button.save:hover { background: rgba(0,122,255,0.45); }
+    .app-notepad .np-filename { margin-left: auto; font-size: 12px; opacity: 0.5; }
+    .app-notepad textarea { flex: 1; width: 100%; min-height: 200px; background: rgba(0,0,0,0.2); border: none; border-radius: 8px; color: #e8e8f0; padding: 10px 12px; font-size: 14px; font-family: 'Consolas', 'Courier New', monospace; resize: none; outline: none; line-height: 1.5; }
+    .app-notepad .stats { display: flex; gap: 16px; font-size: 12px; opacity: 0.5; margin-top: 6px; flex-wrap: wrap; }
+
+    .app-media { display: flex; flex-direction: column; height: 100%; }
+    .app-media .upload-area { border: 2px dashed rgba(255,255,255,0.15); border-radius: 12px; padding: 24px 20px; text-align: center; cursor: pointer; margin-bottom: 12px; }
+    .app-media .upload-area:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.03); }
+    .app-media .upload-area .icon { font-size: 36px; opacity: 0.5; }
+    .app-media .mp-filename { font-size: 13px; opacity: 0.7; margin-bottom: 6px; word-break: break-all; }
+    .app-media .mp-meta { font-size: 11px; opacity: 0.5; margin-bottom: 8px; }
+    .app-media video, .app-media audio, .app-media img { width: 100%; border-radius: 8px; max-height: 380px; object-fit: contain; background: #000; }
+    .app-media .mp-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .app-media .mp-actions button, .app-media .mp-actions a { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; background: rgba(255,255,255,0.08); color: #ddd; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .app-media .mp-actions .primary { background: rgba(0,122,255,0.3); color: #5ac8fa; }
+    .app-media .mp-error { margin-top: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(255,59,48,0.12); border: 1px solid rgba(255,59,48,0.3); color: #ff8a80; font-size: 12px; line-height: 1.5; }
+    .app-media .mp-error b { color: #ff6b6b; }
+
+    .app-paint canvas { border-radius: 8px; background: #fff; cursor: crosshair; width: 100%; height: 300px; touch-action: none; }
+    .app-paint .tools { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .app-paint .tools button { padding: 4px 14px; border: none; border-radius: 6px; background: rgba(255,255,255,0.08); color: #ddd; cursor: pointer; font-size: 12px; }
+    .app-paint .tools input[type="color"] { width: 32px; height: 32px; border: none; border-radius: 6px; cursor: pointer; background: transparent; }
+
+    .app-cmd .cmd-output { background: rgba(0,0,0,0.4); border-radius: 8px; padding: 10px 14px; font-family: 'Consolas', monospace; font-size: 13px; min-height: 120px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; color: #8be9fd; margin-bottom: 6px; }
+    .app-cmd .cmd-input { display: flex; gap: 6px; }
+    .app-cmd .cmd-input input { flex: 1; background: rgba(0,0,0,0.3); border: none; border-radius: 6px; padding: 6px 12px; color: #e8e8f0; font-family: 'Consolas', monospace; font-size: 13px; outline: none; }
+    .app-cmd .cmd-input button { padding: 6px 16px; border: none; border-radius: 6px; background: rgba(255,255,255,0.08); color: #ddd; cursor: pointer; font-size: 13px; }
+
+    .dialog-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); z-index: 99999; align-items: center; justify-content: center; }
+    .dialog-overlay.open { display: flex; }
+    .dialog-box { background: rgba(50,50,70,0.95); backdrop-filter: blur(30px); border-radius: 16px; padding: 24px 32px; max-width: 460px; width: 90%; border: 1px solid rgba(255,255,255,0.06); }
+    .dialog-box .title { font-size: 17px; font-weight: 600; margin-bottom: 16px; }
+    .dialog-box .msg { font-size: 14px; opacity: 0.8; margin-bottom: 16px; white-space: pre-wrap; }
+    .dialog-box .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    .dialog-box .actions button { padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; background: rgba(255,255,255,0.08); color: #ddd; }
+    .dialog-box .actions button.primary { background: #007aff; color: #fff; }
+    .dialog-box .actions button.danger { background: #ff3b30; color: #fff; }
+
+    .form-row { margin-bottom: 14px; }
+    .form-row label { display: block; font-size: 12px; opacity: 0.7; margin-bottom: 6px; font-weight: 500; }
+    .form-row input[type="text"] { width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 13px; outline: none; }
+    .form-row input[type="text"]:focus { border-color: #007aff; }
+    .form-row .preview-box { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); }
+    .form-row .preview-box .icon-box { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #fff; }
+    .form-row .preview-box .preview-name { font-size: 14px; font-weight: 500; }
+    .form-row .preview-box .preview-url { font-size: 11px; opacity: 0.5; margin-top: 2px; }
+
+    .color-picker-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .color-picker-row .swatch { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+    .color-picker-row .swatch.active { border-color: #fff; box-shadow: 0 0 0 2px #007aff; }
+
+    .emoji-picker { display: flex; gap: 4px; flex-wrap: wrap; }
+    .emoji-picker .emoji-btn { width: 34px; height: 34px; border-radius: 8px; background: rgba(255,255,255,0.06); border: 1px solid transparent; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+    .emoji-picker .emoji-btn.active { background: rgba(0,122,255,0.3); border-color: #007aff; }
+
+    .sound-icon { font-size: 16px; cursor: pointer; opacity: 0.6; padding: 2px 6px; border-radius: 4px; }
+    .file-input-hidden { display: none; }
+    .screenshot-flash { position: fixed; inset: 0; background: #fff; z-index: 999999; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+    .screenshot-flash.active { opacity: 0.3; }
+</style>
+</head>
+<body>
+
+<div id="desktop"></div>
+<div id="desktop-icons"></div>
+<div id="desktop-context"></div>
+
+<div id="taskbar">
+    <div class="tb-left">
+        <button id="start-btn">🪟</button>
+    </div>
+    <div class="tb-center" id="taskbar-windows"></div>
+    <div class="tb-right">
+        <span class="sound-icon">🔊</span>
+        <div id="clock">
+            <span class="time" id="clock-time">00:00</span>
+            <span class="date" id="clock-date">01.01.2026</span>
+        </div>
+    </div>
+</div>
+
+<div id="start-menu">
+    <div class="search-box">
+        <span class="icon">🔍</span>
+        <input type="text" id="start-search" />
+    </div>
+    <div class="sm-body">
+        <div class="sm-left" id="start-apps-list"></div>
+        <div class="sm-right" id="start-pinned-list"></div>
+    </div>
+    <div class="sm-footer"><span>MarfaOS 12</span><span>•</span><span>User</span></div>
+</div>
+
+<div class="dialog-overlay" id="dialog-overlay">
+    <div class="dialog-box">
+        <div class="title" id="dialog-title"></div>
+        <div class="msg" id="dialog-msg"></div>
+        <div class="actions" id="dialog-actions"></div>
+    </div>
+</div>
+
+<div class="dialog-overlay" id="form-overlay">
+    <div class="dialog-box">
+        <div class="title" id="form-title"></div>
+        <div id="form-body"></div>
+        <div class="actions">
+            <button id="form-cancel"></button>
+            <button class="primary" id="form-save"></button>
+        </div>
+    </div>
+</div>
+
+<div class="screenshot-flash" id="screenshot-flash"></div>
+<input type="file" id="hidden-file-input" class="file-input-hidden" multiple />
+<input type="file" id="import-file-input" class="file-input-hidden" accept=".json,application/json" />
+
+<script>
+// ============================================================
+//  TRANSLATIONS
+// ============================================================
+const TRANSLATIONS = {
+    en: {
+        // Apps
+        explorer: 'Explorer', calculator: 'Calculator', notepad: 'Notepad',
+        mediaplayer: 'Media Player', paint: 'Paint', cmd: 'CMD', controlpanel: 'Control Panel',
+        // Start / taskbar
+        search_apps: 'Search apps...', pinned: '📌 Pinned',
+        // Context menu
+        new_folder: 'New folder', new_text: 'Text file', new_shortcut: 'Website shortcut',
+        refresh: 'Refresh', paste: 'Paste', personalize: 'Personalize',
+        open: 'Open', show_in_folder: 'Show in folder', rename: 'Rename', delete: 'Delete',
+        copy: 'Copy', cut: 'Cut', edit: 'Edit', duplicate: 'Duplicate',
+        copy_url: 'Copy URL', open_in_new_tab: 'Open in new tab',
+        // Explorer
+        up: 'Up', folder: 'Folder', file: 'File', upload: 'Upload',
+        search_files: 'Search files and folders...', everywhere: 'Everywhere',
+        folder_empty: 'Folder is empty',
+        nothing_found: 'Nothing found for',
+        search_label: 'Search:', found_label: 'Found',
+        disk_x: 'Disk X:', desktop: 'Desktop', documents: 'Documents', downloads: 'Downloads', marfaos: 'MarfaOS',
+        element: ['element','elements','elements'],
+        across_disk: '(across the disk)',
+        // Control panel
+        cp_system: 'System', cp_storage: 'Storage', cp_activation: 'Activation', cp_personalization: 'Personalization',
+        sound: 'Sound', audio_output: 'Audio output', system_default: 'System default',
+        speakers: 'Speakers', headphones: 'Headphones', volume: 'Volume', test_sound: 'Test sound', play: 'Play',
+        pc_info: 'PC Information', cpu: 'Processor', cores: 'Cores', threads: 'Threads',
+        gpu: 'GPU', vram: 'VRAM', storage: 'Storage', ram: 'RAM', motherboard: 'Motherboard',
+        disks: 'Disks', used: 'Used', free: 'Free', total: 'Total',
+        activated: 'System activated', license_by: 'License provided by blogger', version: 'Version',
+        taskbar: 'Taskbar', bottom: 'Bottom', top: 'Top', left: 'Left',
+        accent_color: 'Accent color', wallpaper_url: 'Wallpaper by URL', apply: 'Apply',
+        builtin_wallpapers: 'Built-in wallpapers',
+        website_shortcuts: 'Website shortcuts', shortcuts_added: 'Shortcuts added:',
+        add_shortcut: 'Add shortcut',
+        export_import: '💾 Export & Import data',
+        export_desc: 'Save all data (files, shortcuts, wallpaper, settings) to a .json file — or restore from a previous backup.',
+        export_full: '💾 Download full backup', import_backup: '📂 Load backup',
+        export_shortcuts_only: '🌐 Shortcuts only', export_files_only: '📁 Files only',
+        save_to_downloads: '💡 The file will be saved to your Downloads folder.',
+        current_size: '📊 Current data size:',
+        danger_zone: '⚠️ Danger zone',
+        danger_desc: 'Full system reset. All files, shortcuts and settings will be deleted.',
+        reset_all: '🗑️ Reset everything',
+        language: 'Language', language_desc: 'Choose interface language',
+        interface_language: 'Interface language',
+        // Notepad
+        save: 'Save', save_as: 'Save as...', enter_text: 'Enter text...',
+        characters: 'Characters', lines: 'Lines', words: 'Words', reading_time: 'Reading', min: 'min',
+        untitled: 'Untitled', saved: 'Saved', file_saved: 'File saved', saved_to_desktop: 'saved to Desktop',
+        save_as_prompt: 'Save as (filename):', new_file: 'New file.txt',
+        overwrite: 'already exists. Overwrite?',
+        // Media
+        click_or_drag: 'Click or drag file', media_hint: 'mp4, webm, mkv, mp3, png, jpg, webp',
+        open_another_file: '📁 Open another file',
+        format: 'Format', type: 'Type', video: 'video', audio: 'audio', image: 'image', unknown: 'unknown',
+        cant_play: 'Failed to play', download_file: '💾 Download file',
+        not_supported: 'not supported',
+        // Paint
+        clear: 'Clear', screenshot: 'Screenshot',
+        // CMD
+        cmd_welcome: 'MarfaOS 12 [Version 12.0.22621]',
+        cmd_type_help: 'Type "help" for list of commands.',
+        // Dialog
+        ok: 'OK', cancel: 'Cancel', error: 'Error',
+        // Shortcut form
+        shortcut_title: 'Website shortcut', edit_shortcut: 'Edit shortcut', new_shortcut_title: 'New website shortcut',
+        name: 'Name', name_placeholder: 'YouTube, GitHub, ...',
+        url: 'Website URL', url_placeholder: 'https://example.com',
+        icon_label: 'Icon (emoji)', color_label: 'Background color', preview: 'Preview',
+        no_name: 'Untitled', url_not_set: 'URL not set',
+        enter_name: 'Enter shortcut name', enter_url: 'Enter website URL',
+        done: 'Done', added_to_desktop: 'added to desktop',
+        // Welcome
+        welcome_title: '👋 Welcome to MarfaOS 12!',
+        welcome_msg: 'System loaded.\n\n💡 Right-click on desktop → "🌐 Website shortcut"\n💡 Explorer has real-time search at the top.\n💡 Language: Personalization → 🌐 Language\n\nLicense provided by blogger Kotomarf ❤️',
+        // Storage / export
+        export_done: '💾 Export complete', export_saved: 'File saved to Downloads.',
+        export_shortcuts_title: '🌐 Shortcuts exported',
+        export_files_title: '📁 Files exported',
+        import_error: 'Error', import_parse_error: 'Failed to parse file: ',
+        // Misc
+        restoring: 'Restoring...',
+        yes: 'Yes', no: 'No',
+    },
+    ru: {
+        explorer: 'Проводник', calculator: 'Калькулятор', notepad: 'Блокнот',
+        mediaplayer: 'Медиаплеер', paint: 'Paint', cmd: 'CMD', controlpanel: 'Панель управления',
+        search_apps: 'Поиск приложений...', pinned: '📌 Закрепленные',
+        new_folder: 'Новая папка', new_text: 'Текстовый файл', new_shortcut: 'Ярлык сайта',
+        refresh: 'Обновить', paste: 'Вставить', personalize: 'Персонализация',
+        open: 'Открыть', show_in_folder: 'Показать в папке', rename: 'Переименовать', delete: 'Удалить',
+        copy: 'Копировать', cut: 'Вырезать', edit: 'Изменить', duplicate: 'Дублировать',
+        copy_url: 'Копировать URL', open_in_new_tab: 'Открыть в новой вкладке',
+        up: 'Вверх', folder: 'Папка', file: 'Файл', upload: 'Залить',
+        search_files: 'Поиск файлов и папок...', everywhere: 'Везде',
+        folder_empty: 'Папка пуста',
+        nothing_found: 'Ничего не найдено по запросу',
+        search_label: 'Поиск:', found_label: 'Найдено',
+        disk_x: 'Диск X:', desktop: 'Рабочий стол', documents: 'Документы', downloads: 'Загрузки', marfaos: 'MarfaOS',
+        element: ['элемент','элемента','элементов'],
+        across_disk: '(по всему диску)',
+        cp_system: 'Система', cp_storage: 'Хранилище', cp_activation: 'Активация', cp_personalization: 'Персонализация',
+        sound: 'Звук', audio_output: 'Вывод звука', system_default: 'Системный',
+        speakers: 'Динамики', headphones: 'Наушники', volume: 'Громкость', test_sound: 'Тест звука', play: 'Играть',
+        pc_info: 'Информация о ПК', cpu: 'Процессор', cores: 'Ядер', threads: 'Потоков',
+        gpu: 'Видеокарта', vram: 'Видеопамять', storage: 'Накопитель', ram: 'ОЗУ', motherboard: 'Материнская плата',
+        disks: 'Диски', used: 'Использовано', free: 'Свободно', total: 'Всего',
+        activated: 'Система активирована', license_by: 'Лицензия от блогера', version: 'Версия',
+        taskbar: 'Панель задач', bottom: 'Снизу', top: 'Сверху', left: 'Слева',
+        accent_color: 'Акцентный цвет', wallpaper_url: 'Обои по ссылке', apply: 'Применить',
+        builtin_wallpapers: 'Встроенные обои',
+        website_shortcuts: 'Ярлыки сайтов', shortcuts_added: 'Добавлено ярлыков:',
+        add_shortcut: 'Добавить ярлык',
+        export_import: '💾 Экспорт и импорт данных',
+        export_desc: 'Сохраните все данные (файлы, ярлыки, обои, настройки) в .json файл — или восстановите из ранее сохранённого.',
+        export_full: '💾 Скачать полный бекап', import_backup: '📂 Загрузить бекап',
+        export_shortcuts_only: '🌐 Только ярлыки', export_files_only: '📁 Только файлы',
+        save_to_downloads: '💡 Файл сохранится в папку «Загрузки».',
+        current_size: '📊 Текущий размер данных:',
+        danger_zone: '⚠️ Опасная зона',
+        danger_desc: 'Полный сброс системы. Все файлы, ярлыки и настройки будут удалены.',
+        reset_all: '🗑️ Сбросить всё и начать заново',
+        language: 'Язык', language_desc: 'Выберите язык интерфейса',
+        interface_language: 'Язык интерфейса',
+        save: 'Сохранить', save_as: 'Сохранить как...', enter_text: 'Введите текст...',
+        characters: 'Символов', lines: 'Строк', words: 'Слов', reading_time: 'Чтение', min: 'мин',
+        untitled: 'Без имени', saved: 'Сохранено', file_saved: 'Файл сохранён', saved_to_desktop: 'сохранён на Рабочий стол',
+        save_as_prompt: 'Сохранить как (имя файла):', new_file: 'Новый файл.txt',
+        overwrite: 'уже существует. Перезаписать?',
+        click_or_drag: 'Нажмите или перетащите файл', media_hint: 'mp4, webm, mkv, mp3, png, jpg, webp',
+        open_another_file: '📁 Открыть другой файл',
+        format: 'Формат', type: 'Тип', video: 'видео', audio: 'аудио', image: 'изображение', unknown: 'неизвестно',
+        cant_play: 'Не удалось воспроизвести', download_file: '💾 Скачать файл',
+        not_supported: 'не поддерживается',
+        clear: 'Очистить', screenshot: 'Скриншот',
+        cmd_welcome: 'MarfaOS 12 [Версия 12.0.22621]',
+        cmd_type_help: 'Тип "help" для списка команд.',
+        ok: 'OK', cancel: 'Отмена', error: 'Ошибка',
+        shortcut_title: 'Ярлык сайта', edit_shortcut: 'Редактировать ярлык', new_shortcut_title: 'Новый ярлык сайта',
+        name: 'Название', name_placeholder: 'YouTube, GitHub, ...',
+        url: 'Адрес сайта (URL)', url_placeholder: 'https://example.com',
+        icon_label: 'Иконка (эмодзи)', color_label: 'Цвет фона', preview: 'Предпросмотр',
+        no_name: 'Без названия', url_not_set: 'URL не указан',
+        enter_name: 'Введите название ярлыка', enter_url: 'Введите адрес сайта',
+        done: 'Готово', added_to_desktop: 'добавлен на рабочий стол',
+        welcome_title: '👋 Добро пожаловать в MarfaOS 12!',
+        welcome_msg: 'Система загружена.\n\n💡 ПКМ на рабочем столе → «🌐 Ярлык сайта»\n💡 В Проводнике сверху есть поиск — работает в реальном времени.\n💡 Язык: Персонализация → 🌐 Язык\n\nЛицензия от блогера Kotomarf ❤️',
+        export_done: '💾 Экспорт завершён', export_saved: 'Файл сохранён в папку загрузок.',
+        export_shortcuts_title: '🌐 Экспорт ярлыков',
+        export_files_title: '📁 Экспорт файлов',
+        import_error: 'Ошибка', import_parse_error: 'Не удалось разобрать файл: ',
+        restoring: 'Восстановление...',
+        yes: 'Да', no: 'Нет',
+    }
+};
+
+function t(key) {
+    const lang = state.language || 'en';
+    const val = TRANSLATIONS[lang][key] || TRANSLATIONS.en[key] || key;
+    return val;
+}
+
+// ============================================================
+//  STATE
+// ============================================================
+const STORAGE_KEY = 'marfaos12_state_v1';
+
+const PRESET_COLORS = ['#ff3b30','#ff9500','#ffcc00','#34c759','#00c7be','#30b0c7','#007aff','#5856d6','#af52de','#ff2d55','#8e8e93','#1c1c1e'];
+const PRESET_EMOJIS = ['🌐','🔍','📺','🎬','🎵','📚','🛒','💬','📷','🎮','📰','💼','📧','🗺️','⭐','❤️','🔥','⚡','🎯','💎','🌟','🍿','☕','🎨','📝','💡','🏆','🚀'];
+
+function getDefaultState() {
+    return {
+        language: 'en',
+        fileSystem: {
+            'X:': {
+                type: 'drive', label: 'Disk X:',
+                children: {
+                    'MarfaOS': {
+                        type: 'folder', label: 'MarfaOS',
+                        children: {
+                            'System': { type: 'folder', label: 'System', children: {} },
+                            'Users': { type: 'folder', label: 'Users', children: {} },
+                            'Programs': { type: 'folder', label: 'Programs', children: {} },
+                            'readme.txt': { type: 'file', label: 'readme.txt', content: 'Welcome to MarfaOS 12!' }
+                        }
+                    },
+                    'Documents': { type: 'folder', label: 'Documents', children: {} },
+                    'Downloads': { type: 'folder', label: 'Downloads', children: {} },
+                    'Desktop': { type: 'folder', label: 'Desktop', children: {} }
+                }
+            }
+        },
+        pinnedApps: ['explorer','calculator','notepad','mediaplayer','paint','cmd','controlpanel'],
+        wallpaper: 'default', wallpaperUrl: null, accentColor: '#007aff',
+        taskbarPosition: 'bottom',
+        websiteShortcuts: [
+            { id: 'sc_default1', name: 'YouTube', url: 'https://www.youtube.com', icon: '📺', color: '#ff0000' },
+            { id: 'sc_default2', name: 'GitHub', url: 'https://github.com', icon: '💻', color: '#24292e' }
+        ]
+    };
+}
+
+function loadState() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return getDefaultState();
+        const saved = JSON.parse(raw);
+        const def = getDefaultState();
+        return {
+            language: saved.language || 'en',
+            fileSystem: saved.fileSystem || def.fileSystem,
+            pinnedApps: saved.pinnedApps || def.pinnedApps,
+            wallpaper: saved.wallpaper || def.wallpaper,
+            wallpaperUrl: saved.wallpaperUrl || null,
+            accentColor: saved.accentColor || def.accentColor,
+            taskbarPosition: saved.taskbarPosition || 'bottom',
+            websiteShortcuts: saved.websiteShortcuts || def.websiteShortcuts
+        };
+    } catch (e) { return getDefaultState(); }
+}
+
+let saveTimeout = null;
+function saveState() {
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                language: state.language,
+                fileSystem: state.fileSystem,
+                pinnedApps: state.pinnedApps,
+                wallpaper: state.wallpaper,
+                wallpaperUrl: state.wallpaperUrl,
+                accentColor: state.accentColor,
+                taskbarPosition: state.taskbarPosition,
+                websiteShortcuts: state.websiteShortcuts
+            }));
+        } catch (e) {}
+    }, 200);
+}
+
+const saved = loadState();
+const state = {
+    windows: {}, nextWindowId: 1, activeWindowId: null,
+    language: saved.language,
+    pinnedApps: saved.pinnedApps, fileSystem: saved.fileSystem,
+    wallpaper: saved.wallpaper, wallpaperUrl: saved.wallpaperUrl,
+    accentColor: saved.accentColor, taskbarPosition: saved.taskbarPosition,
+    websiteShortcuts: saved.websiteShortcuts,
+    currentPath: ['X:', 'MarfaOS'], clipboard: null, volume: 70
+};
+
+// ============================================================
+//  UTILITIES
+// ============================================================
+function getFileSystemNode(pathArray) {
+    if (!pathArray || !pathArray.length) return null;
+    let node = state.fileSystem[pathArray[0]];
+    if (!node) return null;
+    for (let i = 1; i < pathArray.length; i++) {
+        const seg = pathArray[i];
+        if (node && node.children && node.children[seg]) node = node.children[seg];
+        else return null;
+    }
+    return node;
+}
+function getParentPath(p) { return p.slice(0, -1); }
+function getFileExtension(name) { const i = name.lastIndexOf('.'); return i > 0 ? name.slice(i+1).toLowerCase() : ''; }
+
+const TEXT_EXTS = ['txt','md','json','js','html','css','xml','log','ini','cfg','conf','yml','yaml','csv'];
+const IMAGE_EXTS = ['png','jpg','jpeg','gif','svg','webp','bmp','ico','avif'];
+const AUDIO_EXTS = ['mp3','wav','ogg','oga','flac','aac','m4a','opus','weba'];
+const VIDEO_EXTS = ['mp4','webm','mkv','m4v','ogv','avi','mov','wmv','flv','3gp','ts','m2ts','mpg','mpeg'];
+
+function getFileIcon(name, isFolder) {
+    if (isFolder) return '📁';
+    const ext = getFileExtension(name);
+    if (VIDEO_EXTS.includes(ext)) return '🎬';
+    if (AUDIO_EXTS.includes(ext)) return '🎵';
+    if (IMAGE_EXTS.includes(ext)) return '🖼️';
+    const map = { txt:'📄', js:'📜', html:'🌐', css:'🎨', json:'📋', md:'📝', exe:'⚙️', zip:'📦', rar:'📦', pdf:'📕', iso:'💿' };
+    return map[ext] || '📄';
+}
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+    if (bytes < 1024*1024*1024) return (bytes/1024/1024).toFixed(1) + ' MB';
+    return (bytes/1024/1024/1024).toFixed(2) + ' GB';
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]); }
+function highlightMatch(text, query) {
+    const safe = escapeHtml(text);
+    if (!query) return safe;
+    const q = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return safe.replace(new RegExp('(' + q + ')', 'gi'), '<mark class="hl">$1</mark>');
+}
+function declOfNum(n, forms) {
+    n = Math.abs(n) % 100;
+    const n1 = n % 10;
+    if (n > 10 && n < 20) return forms[2];
+    if (n1 > 1 && n1 < 5) return forms[1];
+    if (n1 === 1) return forms[0];
+    return forms[2];
+}
+
+const VIDEO_MIMES = { mp4:'video/mp4', m4v:'video/mp4', webm:'video/webm', mkv:'video/x-matroska', ogv:'video/ogg', avi:'video/x-msvideo', mov:'video/quicktime', wmv:'video/x-ms-wmv', flv:'video/x-flv', '3gp':'video/3gpp', ts:'video/mp2t', m2ts:'video/mp2t', mpg:'video/mpeg', mpeg:'video/mpeg' };
+const AUDIO_MIMES = { mp3:'audio/mpeg', wav:'audio/wav', ogg:'audio/ogg', oga:'audio/ogg', flac:'audio/flac', aac:'audio/aac', m4a:'audio/mp4', opus:'audio/opus', weba:'audio/webm' };
+
+// ============================================================
+//  SOUND
+// ============================================================
+const sound = {
+    enabled: true, ctx: null,
+    init() { try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} },
+    play(type) {
+        if (!this.enabled || !this.ctx) return;
+        try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            gain.gain.value = 0.05;
+            const t = this.ctx.currentTime;
+            const freqs = { startup: [523, 784, 0.4], click: [800, 0, 0.04], notification: [880, 1108, 0.15] };
+            const [f1, f2, dur] = freqs[type] || [800, 0, 0.04];
+            osc.frequency.setValueAtTime(f1, t);
+            if (f2) osc.frequency.setValueAtTime(f2, t + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            osc.start(t); osc.stop(t + dur);
+        } catch(e){}
+    }
+};
+sound.init();
+
+// ============================================================
+//  DIALOGS
+// ============================================================
+function showDialog(title, msg, actions) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('dialog-overlay');
+        document.getElementById('dialog-title').textContent = title;
+        document.getElementById('dialog-msg').textContent = msg;
+        const container = document.getElementById('dialog-actions');
+        container.innerHTML = '';
+        (actions || [{label: t('ok'), value: true, class: 'primary'}]).forEach(a => {
+            const btn = document.createElement('button');
+            btn.textContent = a.label;
+            if (a.class) btn.className = a.class;
+            btn.onclick = () => {
+                overlay.classList.remove('open');
+                sound.play('click');
+                resolve(a.value);
+            };
+            container.appendChild(btn);
+        });
+        overlay.classList.add('open');
+    });
+}
+function showAlert(t1, m) { return showDialog(t1, m, [{label: t('ok'), value: true, class: 'primary'}]); }
+function showConfirm(t1, m) { return showDialog(t1, m, [{label: t('cancel'), value: false}, {label: t('ok'), value: true, class: 'primary'}]); }
+
+// ============================================================
+//  CLOCK
+// ============================================================
+function updateClock() {
+    const now = new Date();
+    document.getElementById('clock-time').textContent = now.toTimeString().slice(0,5);
+    const locale = state.language === 'ru' ? 'ru-RU' : 'en-US';
+    document.getElementById('clock-date').textContent = now.toLocaleDateString(locale);
+}
+setInterval(updateClock, 1000);
+updateClock();
+setTimeout(() => sound.play('startup'), 400);
+
+// ============================================================
+//  WINDOWS
+// ============================================================
+function createWindow(appId, title, icon, contentFn, width, height, params) {
+    width = width || 560; height = height || 420;
+    const id = 'win_' + (state.nextWindowId++);
+    const win = document.createElement('div');
+    win.className = 'window';
+    win.id = id;
+    win.style.width = width + 'px';
+    win.style.height = height + 'px';
+    win.style.left = (80 + Math.random() * 60) + 'px';
+    win.style.top = (60 + Math.random() * 40) + 'px';
+
+    const header = document.createElement('div');
+    header.className = 'win-header';
+    header.innerHTML = `<span class="win-icon">${icon}</span><span class="win-title">${escapeHtml(title)}</span>
+        <div class="win-controls"><button class="min-btn">─</button><button class="max-btn">⬜</button><button class="close-btn">✕</button></div>`;
+    win.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'win-body';
+    body.id = id + '_body';
+    win.appendChild(body);
+    document.body.appendChild(win);
+
+    let isDragging = false, dragStartX, dragStartY, winStartX, winStartY;
+
+    header.querySelector('.min-btn').onclick = (e) => { e.stopPropagation(); minimizeWindow(id); };
+    header.querySelector('.max-btn').onclick = (e) => { e.stopPropagation(); toggleMaximize(id); };
+    header.querySelector('.close-btn').onclick = (e) => { e.stopPropagation(); closeWindow(id); };
+
+    header.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.win-controls')) return;
+        if (state.windows[id] && state.windows[id].isMaximized) return;
+        isDragging = true;
+        dragStartX = e.clientX; dragStartY = e.clientY;
+        winStartX = win.offsetLeft; winStartY = win.offsetTop;
+        bringToFront(id);
+        document.body.style.cursor = 'grabbing';
+    });
+    const onMove = (e) => {
+        if (isDragging) {
+            win.style.left = Math.max(0, winStartX + e.clientX - dragStartX) + 'px';
+            win.style.top = Math.max(0, winStartY + e.clientY - dragStartY) + 'px';
+        }
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', () => { isDragging = false; document.body.style.cursor = ''; });
+
+    state.windows[id] = { id, appId, title, icon, element: win, body, params: params || {},
+        isMinimized: false, isMaximized: false, isOpen: true, zIndex: 100 };
+
+    if (contentFn) {
+        try { contentFn(body, id, params || {}); }
+        catch(e) { body.innerHTML = '<div style="color:#ff6b6b;">Error: ' + e.message + '</div>'; }
+    }
+
+    win.style.display = 'flex';
+    win.classList.add('open');
+    bringToFront(id);
+    updateTaskbar();
+    return id;
+}
+
+function bringToFront(id) {
+    const win = state.windows[id]; if (!win) return;
+    const maxZ = Math.max(100, ...Object.values(state.windows).map(w => w.zIndex || 100));
+    win.zIndex = maxZ + 1;
+    win.element.style.zIndex = win.zIndex;
+    state.activeWindowId = id;
+    updateTaskbar();
+}
+function minimizeWindow(id) {
+    const w = state.windows[id]; if (!w) return;
+    w.isMinimized = true; w.element.classList.add('minimized');
+    updateTaskbar(); sound.play('click');
+}
+function restoreWindow(id) {
+    const w = state.windows[id]; if (!w) return;
+    w.isMinimized = false; w.element.classList.remove('minimized');
+    bringToFront(id); sound.play('click');
+}
+function toggleMaximize(id) {
+    const w = state.windows[id]; if (!w) return;
+    w.isMaximized = !w.isMaximized;
+    w.element.classList.toggle('maximized', w.isMaximized);
+    sound.play('click');
+}
+function closeWindow(id) {
+    const w = state.windows[id]; if (!w) return;
+    w.element.remove(); delete state.windows[id];
+    updateTaskbar(); sound.play('click');
+}
+function getWindowByAppId(appId) {
+    for (const w of Object.values(state.windows)) if (w.appId === appId && w.isOpen) return w;
+    return null;
+}
+function openApp(appId, params) {
+    const app = apps[appId]; if (!app) return;
+    const forceNew = params && params.path;
+    if (!forceNew) {
+        const ex = getWindowByAppId(appId);
+        if (ex) { if (ex.isMinimized) restoreWindow(ex.id); else bringToFront(ex.id); return; }
+    }
+    const title = (params && params.path) ? params.path[params.path.length - 1] : app.title;
+    createWindow(appId, title, app.icon, app.render, app.width, app.height, params);
+    sound.play('notification');
+}
+function updateTaskbar() {
+    const c = document.getElementById('taskbar-windows');
+    c.innerHTML = '';
+    for (const win of Object.values(state.windows)) {
+        if (!win.isOpen) continue;
+        const btn = document.createElement('button');
+        btn.className = 'taskbar-item';
+        if (!win.isMinimized && state.activeWindowId === win.id) btn.classList.add('active');
+        btn.innerHTML = `<span class="icon">${win.icon}</span><span class="label">${escapeHtml(win.title)}</span>`;
+        btn.onclick = () => {
+            if (win.isMinimized) restoreWindow(win.id);
+            else if (state.activeWindowId === win.id) minimizeWindow(win.id);
+            else bringToFront(win.id);
+        };
+        c.appendChild(btn);
+    }
+}
+document.addEventListener('mousedown', (e) => {
+    const el = e.target.closest('.window');
+    if (el && state.windows[el.id]) bringToFront(el.id);
+});
+
+// ============================================================
+//  APPS
+// ============================================================
+const apps = {};
+
+function openFileByPath(pathArray) {
+    const node = getFileSystemNode(pathArray);
+    if (!node) return showAlert(t('error'), 'File not found');
+    const name = pathArray[pathArray.length - 1];
+    const ext = getFileExtension(name);
+    if (TEXT_EXTS.includes(ext)) openApp('notepad', { path: pathArray });
+    else if (IMAGE_EXTS.includes(ext) || AUDIO_EXTS.includes(ext) || VIDEO_EXTS.includes(ext)) openApp('mediaplayer', { path: pathArray });
+}
+
+// ---- EXPLORER ----
+apps.explorer = {
+    get title() { return t('explorer'); },
+    icon: '📂', width: 780, height: 520,
+    render: function(body, winId) {
+        body.innerHTML = `
+            <div class="explorer-sidebar">
+                <div class="sidebar" id="${winId}_sb"></div>
+                <div class="main">
+                    <div class="toolbar">
+                        <button data-act="up">⬆ ${t('up')}</button>
+                        <button data-act="new-folder">📁 ${t('folder')}</button>
+                        <button data-act="new-file">📄 ${t('file')}</button>
+                        <button data-act="upload">⬆ ${t('upload')}</button>
+                        <button data-act="refresh">🔄</button>
+                    </div>
+                    <div class="search-bar">
+                        <span>🔍</span>
+                        <input type="text" id="${winId}_search" placeholder="${t('search_files')}" />
+                        <button class="search-clear" id="${winId}_clear">✕</button>
+                        <label class="search-recursive"><input type="checkbox" id="${winId}_rec" /><span>${t('everywhere')}</span></label>
+                    </div>
+                    <div style="font-size:12px;opacity:0.5;padding:2px 4px;" id="${winId}_path"></div>
+                    <div class="search-status" id="${winId}_status" style="display:none;"></div>
+                    <div class="file-grid" id="${winId}_grid"></div>
+                </div>
+            </div>`;
+        const grid = document.getElementById(winId + '_grid');
+        const pathEl = document.getElementById(winId + '_path');
+        const sidebar = document.getElementById(winId + '_sb');
+        const searchInput = document.getElementById(winId + '_search');
+        const clearBtn = document.getElementById(winId + '_clear');
+        const recCheck = document.getElementById(winId + '_rec');
+        const statusEl = document.getElementById(winId + '_status');
+        let searchQuery = '';
+
+        function renderList() {
+            let node = getFileSystemNode(state.currentPath);
+            if (!node) { state.currentPath = ['X:', 'MarfaOS']; node = getFileSystemNode(state.currentPath); }
+            pathEl.textContent = state.currentPath.join(' \\ ');
+
+            sidebar.innerHTML = `
+                <div class="item" data-nav="X:"><span>💾</span> ${t('disk_x')}</div>
+                <div class="item" data-nav="X:,MarfaOS"><span>📁</span> ${t('marfaos')}</div>
+                <div class="item" data-nav="X:,Desktop"><span>🖥️</span> ${t('desktop')}</div>
+                <div class="item" data-nav="X:,Documents"><span>📄</span> ${t('documents')}</div>
+                <div class="item" data-nav="X:,Downloads"><span>⬇️</span> ${t('downloads')}</div>`;
+            sidebar.querySelectorAll('[data-nav]').forEach(el => {
+                el.onclick = () => {
+                    state.currentPath = el.dataset.nav.split(',');
+                    searchInput.value = ''; searchQuery = '';
+                    clearBtn.style.display = 'none'; statusEl.style.display = 'none';
+                    renderList(); sound.play('click');
+                };
+            });
+
+            grid.innerHTML = '';
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                const results = [];
+                if (recCheck.checked) {
+                    function rec(n, p) {
+                        if (!n || !n.children) return;
+                        for (const [name, item] of Object.entries(n.children)) {
+                            if (name.toLowerCase().includes(q)) results.push({ name, item, path: [...p, name], nested: p.length > state.currentPath.length });
+                            if (item.type === 'folder') rec(item, [...p, name]);
+                        }
+                    }
+                    rec(getFileSystemNode([state.currentPath[0]]), [state.currentPath[0]]);
+                } else {
+                    for (const [name, item] of Object.entries(node.children || {})) {
+                        if (name.toLowerCase().includes(q)) results.push({ name, item, path: [...state.currentPath, name], nested: false });
+                    }
+                }
+                results.sort((a, b) => (a.item.type === 'folder' ? -1 : 1) - (b.item.type === 'folder' ? -1 : 1) || a.name.localeCompare(b.name));
+                statusEl.style.display = 'block';
+                if (results.length === 0) {
+                    statusEl.innerHTML = `🔍 ${t('nothing_found')} <b>«${escapeHtml(searchQuery)}»</b>`;
+                    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;opacity:0.4;padding:40px;">🔍 ${t('nothing_found')} «${escapeHtml(searchQuery)}»</div>`;
+                    return;
+                }
+                statusEl.innerHTML = `🔍 ${t('found_label')}: <b>${results.length}</b> ${declOfNum(results.length, t('element'))} «${escapeHtml(searchQuery)}»${recCheck.checked ? ' <span style="opacity:0.6;">' + t('across_disk') + '</span>' : ''}`;
+                results.forEach(({ name, item, path, nested }) => {
+                    const isFolder = item.type === 'folder';
+                    const el = document.createElement('div');
+                    el.className = 'file-item';
+                    el.innerHTML = `<span class="icon">${isFolder ? '📁' : getFileIcon(name)}</span><span class="name">${highlightMatch(name, searchQuery)}</span>${nested ? `<span class="file-path">${escapeHtml(path.slice(0, -1).join(' \\ '))}</span>` : ''}`;
+                    el.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); showFileMenu(e.clientX, e.clientY, name, isFolder, path); };
+                    el.ondblclick = () => {
+                        if (isFolder) { state.currentPath = path; searchInput.value = ''; searchQuery = ''; clearBtn.style.display = 'none'; renderList(); }
+                        else openFileByPath(path);
+                        sound.play('click');
+                    };
+                    grid.appendChild(el);
+                });
+                return;
+            }
+
+            statusEl.style.display = 'none';
+            const children = node.children || {};
+            const keys = Object.keys(children).sort((a, b) => {
+                if (children[a].type === 'folder' && children[b].type !== 'folder') return -1;
+                if (children[a].type !== 'folder' && children[b].type === 'folder') return 1;
+                return a.localeCompare(b);
+            });
+            if (keys.length === 0) grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;opacity:0.4;padding:40px;">${t('folder_empty')}</div>`;
+            keys.forEach(name => {
+                const item = children[name];
+                const isFolder = item.type === 'folder';
+                const el = document.createElement('div');
+                el.className = 'file-item';
+                el.innerHTML = `<span class="icon">${isFolder ? '📁' : getFileIcon(name)}</span><span class="name">${escapeHtml(name)}</span>`;
+                el.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); showFileMenu(e.clientX, e.clientY, name, isFolder, [...state.currentPath, name]); };
+                el.ondblclick = () => {
+                    if (isFolder) { state.currentPath.push(name); renderList(); }
+                    else openFileByPath([...state.currentPath, name]);
+                    sound.play('click');
+                };
+                grid.appendChild(el);
+            });
+        }
+
+        function showFileMenu(x, y, fileName, isFolder, filePath) {
+            const menu = document.getElementById('desktop-context');
+            menu.style.display = 'block';
+            menu.style.left = x + 'px'; menu.style.top = y + 'px';
+            menu.innerHTML = `
+                <div class="item" data-cmd="new-folder"><span class="icon">📁</span> ${t('new_folder')}</div>
+                <div class="item" data-cmd="new-file"><span class="icon">📄</span> ${t('file')}</div>
+                ${fileName ? '<div class="sep"></div>' : ''}
+                ${fileName ? `<div class="item" data-cmd="open"><span class="icon">📂</span> ${t('open')}</div>` : ''}
+                ${fileName && filePath && filePath.length > 2 ? `<div class="item" data-cmd="show-in-folder"><span class="icon">📁</span> ${t('show_in_folder')}</div>` : ''}
+                ${fileName ? `<div class="item" data-cmd="rename"><span class="icon">✏️</span> ${t('rename')}</div>` : ''}
+                ${fileName ? `<div class="item" data-cmd="delete"><span class="icon">🗑️</span> ${t('delete')}</div>` : ''}
+                ${fileName ? `<div class="item" data-cmd="copy"><span class="icon">📋</span> ${t('copy')}</div>` : ''}
+                ${fileName ? `<div class="item" data-cmd="cut"><span class="icon">✂️</span> ${t('cut')}</div>` : ''}
+                ${state.clipboard ? `<div class="item" data-cmd="paste"><span class="icon">📋</span> ${t('paste')}</div>` : ''}`;
+            menu.querySelectorAll('[data-cmd]').forEach(el => {
+                el.onclick = () => { menu.style.display = 'none'; handleCmd(el.dataset.cmd, fileName, isFolder, filePath); };
+            });
+            setTimeout(() => document.addEventListener('click', function c() { menu.style.display = 'none'; document.removeEventListener('click', c); }, { once: true }), 10);
+        }
+
+        function handleCmd(cmd, fileName, isFolder, filePath) {
+            const workPath = (searchQuery && recCheck.checked && filePath) ? filePath.slice(0, -1) : state.currentPath;
+            const node = getFileSystemNode(workPath);
+            if (!node) return;
+            if (!node.children) node.children = {};
+            if (cmd === 'new-folder') {
+                const name = prompt(t('new_folder') + ':');
+                if (name && name.trim() && !node.children[name.trim()]) {
+                    node.children[name.trim()] = { type: 'folder', label: name.trim(), children: {} };
+                    saveState(); renderList(); renderDesktopIcons(); sound.play('click');
+                }
+            } else if (cmd === 'new-file') {
+                const name = prompt(t('file') + ':');
+                if (name && name.trim()) {
+                    const fn = name.includes('.') ? name.trim() : name.trim() + '.txt';
+                    if (!node.children[fn]) {
+                        node.children[fn] = { type: 'file', label: fn, content: '' };
+                        saveState(); renderList(); renderDesktopIcons(); sound.play('click');
+                    }
+                }
+            } else if (cmd === 'open') {
+                if (isFolder) { state.currentPath = filePath || [...state.currentPath, fileName]; searchInput.value = ''; searchQuery = ''; renderList(); }
+                else openFileByPath(filePath || [...state.currentPath, fileName]);
+            } else if (cmd === 'show-in-folder') {
+                state.currentPath = filePath.slice(0, -1); searchInput.value = ''; searchQuery = ''; renderList();
+            } else if (cmd === 'rename') {
+                const nn = prompt(t('rename') + ':', fileName);
+                if (nn && nn.trim() && nn.trim() !== fileName) {
+                    const d = node.children[fileName]; delete node.children[fileName];
+                    node.children[nn.trim()] = d;
+                    saveState(); renderList(); renderDesktopIcons();
+                }
+            } else if (cmd === 'delete') {
+                if (confirm(`${t('delete')} "${fileName}"?`)) {
+                    delete node.children[fileName];
+                    saveState(); renderList(); renderDesktopIcons();
+                }
+            } else if (cmd === 'copy') {
+                state.clipboard = { source: [...workPath], name: fileName, data: node.children[fileName], cut: false };
+            } else if (cmd === 'cut') {
+                state.clipboard = { source: [...workPath], name: fileName, data: node.children[fileName], cut: true };
+            } else if (cmd === 'paste' && state.clipboard) {
+                const s = state.clipboard;
+                if (!node.children[s.name]) {
+                    node.children[s.name] = JSON.parse(JSON.stringify(s.data));
+                    if (s.cut) { const p = getFileSystemNode(s.source); if (p && p.children) delete p.children[s.name]; }
+                    state.clipboard = null;
+                    saveState(); renderList(); renderDesktopIcons();
+                }
+            }
+        }
+
+        body.querySelectorAll('[data-act]').forEach(el => {
+            el.onclick = () => {
+                const act = el.dataset.act;
+                if (act === 'up') { if (state.currentPath.length > 1) { state.currentPath = getParentPath(state.currentPath); searchInput.value = ''; searchQuery = ''; renderList(); } }
+                else if (act === 'new-folder') handleCmd('new-folder');
+                else if (act === 'new-file') handleCmd('new-file');
+                else if (act === 'upload') document.getElementById('hidden-file-input').click();
+                else if (act === 'refresh') { renderList(); renderDesktopIcons(); }
+            };
+        });
+
+        searchInput.addEventListener('input', (e) => { searchQuery = e.target.value.trim(); clearBtn.style.display = searchQuery ? 'flex' : 'none'; renderList(); });
+        clearBtn.onclick = () => { searchInput.value = ''; searchQuery = ''; clearBtn.style.display = 'none'; renderList(); searchInput.focus(); };
+        recCheck.addEventListener('change', () => { if (searchQuery) renderList(); });
+        grid.oncontextmenu = (e) => { e.preventDefault(); showFileMenu(e.clientX, e.clientY, null, false, null); };
+
+        const fi = document.getElementById('hidden-file-input');
+        fi.onchange = function() {
+            const files = fi.files;
+            if (!files.length) return;
+            const node = getFileSystemNode(state.currentPath);
+            if (!node) return;
+            if (!node.children) node.children = {};
+            let pending = files.length;
+            for (const f of files) {
+                if (node.children[f.name]) { pending--; continue; }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    node.children[f.name] = { type: 'file', label: f.name, content: e.target.result, size: f.size };
+                    pending--;
+                    if (pending === 0) { saveState(); renderList(); renderDesktopIcons(); }
+                };
+                reader.readAsDataURL(f);
+            }
+            fi.value = '';
+        };
+        renderList();
+    }
+};
+
+// ---- CALCULATOR ----
+apps.calculator = {
+    get title() { return t('calculator'); },
+    icon: '🔢', width: 320, height: 440,
+    render: function(body) {
+        body.className = 'app-calc';
+        let expr = '';
+        body.innerHTML = `<div class="display"><div class="expr" id="calc-expr"></div><div class="result" id="calc-result">0</div></div>`;
+        const grid = document.createElement('div');
+        grid.className = 'grid';
+        [['C','±','%','÷'],['7','8','9','×'],['4','5','6','−'],['1','2','3','+'],['0','.','=','⌫']].forEach(row => row.forEach(label => {
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            if (['÷','×','−','+','='].includes(label)) btn.className = 'op';
+            if (label === '=') btn.className += ' eq';
+            btn.onclick = () => {
+                sound.play('click');
+                const eE = document.getElementById('calc-expr');
+                const rE = document.getElementById('calc-result');
+                if (label === 'C') { expr = ''; eE.textContent = ''; rE.textContent = '0'; return; }
+                if (label === '⌫') { expr = expr.slice(0, -1); eE.textContent = expr; return; }
+                if (label === '=') {
+                    try { const s = expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'); const r = Function('"use strict"; return (' + s + ')')(); rE.textContent = String(r); expr = String(r); eE.textContent = expr; }
+                    catch(e) { rE.textContent = 'Error'; expr = ''; }
+                    return;
+                }
+                expr += label; eE.textContent = expr;
+                try { const s = expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-'); rE.textContent = String(Function('"use strict"; return (' + s + ')')()); } catch(e){}
+            };
+            grid.appendChild(btn);
+        }));
+        body.appendChild(grid);
+    }
+};
+
+// ---- NOTEPAD ----
+apps.notepad = {
+    get title() { return t('notepad'); },
+    icon: '📝', width: 560, height: 440,
+    render: function(body, winId, params) {
+        let filePath = (params && params.path) ? [...params.path] : null;
+        let initialContent = '';
+        if (filePath) { const n = getFileSystemNode(filePath); if (n && n.content) initialContent = n.content; }
+        const dispName = () => filePath ? filePath[filePath.length - 1] : t('untitled');
+        body.className = 'app-notepad';
+        body.innerHTML = `
+            <div class="np-toolbar">
+                <button class="save" id="np-save">💾 ${t('save')}</button>
+                <button id="np-saveas">📁 ${t('save_as')}</button>
+                <span class="np-filename" id="np-fname">${escapeHtml(dispName())}</span>
+            </div>
+            <textarea id="np-text" placeholder="${t('enter_text')}"></textarea>
+            <div class="stats">
+                <span>${t('characters')}: <b id="np-chars">0</b></span>
+                <span>${t('lines')}: <b id="np-lines">0</b></span>
+                <span>${t('words')}: <b id="np-words">0</b></span>
+                <span>${t('reading_time')}: ~<b id="np-read">0</b> ${t('min')}</span>
+            </div>`;
+        const ta = document.getElementById('np-text');
+        const fnameEl = document.getElementById('np-fname');
+        ta.value = initialContent;
+        function updateStats() {
+            const v = ta.value;
+            document.getElementById('np-chars').textContent = v.length;
+            document.getElementById('np-lines').textContent = v.split('\n').length;
+            const w = v.trim() ? v.trim().split(/\s+/).length : 0;
+            document.getElementById('np-words').textContent = w;
+            document.getElementById('np-read').textContent = Math.max(1, Math.round(w/200));
+        }
+        ta.addEventListener('input', updateStats);
+        updateStats();
+        function saveFile() {
+            if (!filePath) return saveFileAs();
+            const node = getFileSystemNode(filePath);
+            if (!node) return saveFileAs();
+            node.content = ta.value;
+            saveState(); sound.play('notification');
+            showAlert('💾 ' + t('saved'), t('file_saved') + ' "' + dispName() + '"');
+            renderDesktopIcons();
+        }
+        function saveFileAs() {
+            const dn = filePath ? filePath[filePath.length - 1] : t('new_file');
+            const nn = prompt(t('save_as_prompt'), dn);
+            if (!nn || !nn.trim()) return;
+            const td = ['X:', 'Desktop'];
+            const node = getFileSystemNode(td);
+            if (!node) return;
+            if (!node.children) node.children = {};
+            const fn = nn.trim();
+            if (node.children[fn] && (!filePath || filePath[filePath.length-1] !== fn)) {
+                if (!confirm('"' + fn + '" ' + t('overwrite'))) return;
+            }
+            node.children[fn] = { type: 'file', label: fn, content: ta.value };
+            filePath = [...td, fn];
+            fnameEl.textContent = dispName();
+            const win = state.windows[winId];
+            if (win) { win.title = fn; win.element.querySelector('.win-title').textContent = fn; updateTaskbar(); }
+            saveState(); renderDesktopIcons(); sound.play('notification');
+            showAlert('💾 ' + t('saved'), '"' + fn + '" ' + t('saved_to_desktop'));
+        }
+        document.getElementById('np-save').onclick = saveFile;
+        document.getElementById('np-saveas').onclick = saveFileAs;
+        ta.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveFile(); } });
+    }
+};
+
+// ---- MEDIA PLAYER ----
+apps.mediaplayer = {
+    get title() { return t('mediaplayer'); },
+    icon: '🎵', width: 580, height: 520,
+    render: function(body, winId, params) {
+        body.className = 'app-media';
+        body.innerHTML = `
+            <div class="upload-area" id="mp-up">
+                <div class="icon">🎬</div>
+                <div style="margin-top:8px;opacity:0.6;">${t('click_or_drag')}<br><small>${t('media_hint')}</small></div>
+            </div>
+            <div id="mp-cont"></div>`;
+        const up = document.getElementById('mp-up');
+        const cont = document.getElementById('mp-cont');
+
+        function renderContent(name, content, ext) {
+            const isV = VIDEO_EXTS.includes(ext), isI = IMAGE_EXTS.includes(ext), isA = AUDIO_EXTS.includes(ext);
+            cont.innerHTML = '';
+            const info = document.createElement('div');
+            info.className = 'mp-filename';
+            info.textContent = '📄 ' + name;
+            cont.appendChild(info);
+            const meta = document.createElement('div');
+            meta.className = 'mp-meta';
+            meta.textContent = `${t('format')}: .${ext.toUpperCase()} | ${t('type')}: ${isV ? t('video') : isA ? t('audio') : isI ? t('image') : t('unknown')}`;
+            cont.appendChild(meta);
+            if (isV) {
+                const v = document.createElement('video');
+                v.controls = true; v.preload = 'metadata'; v.style.background = '#000';
+                if (VIDEO_MIMES[ext]) { const s = document.createElement('source'); s.src = content; s.type = VIDEO_MIMES[ext]; v.appendChild(s); }
+                else v.src = content;
+                cont.appendChild(v);
+                let err = false;
+                const showErr = (m) => {
+                    if (err) return; err = true;
+                    const e = document.createElement('div');
+                    e.className = 'mp-error';
+                    e.innerHTML = `<b>⚠️ ${t('cant_play')} .${ext.toUpperCase()}</b><br>${m}`;
+                    cont.appendChild(e);
+                    const a = document.createElement('div'); a.className = 'mp-actions';
+                    const dl = document.createElement('a'); dl.className = 'primary';
+                    dl.innerHTML = t('download_file'); dl.href = content; dl.download = name;
+                    a.appendChild(dl); cont.appendChild(a);
+                };
+                v.addEventListener('error', () => showErr('Codec not supported'));
+                setTimeout(() => { if (v.readyState === 0 && !err) showErr(t('not_supported')); }, 2500);
+            } else if (isA) {
+                const a = document.createElement('audio'); a.controls = true; a.src = content; cont.appendChild(a);
+            } else if (isI) {
+                const i = document.createElement('img'); i.src = content; cont.appendChild(i);
+            }
+            const actions = document.createElement('div'); actions.className = 'mp-actions';
+            const btn = document.createElement('button'); btn.textContent = t('open_another_file');
+            btn.onclick = () => up.click(); actions.appendChild(btn);
+            cont.appendChild(actions);
+        }
+
+        if (params && params.path) {
+            const n = getFileSystemNode(params.path);
+            if (n && n.content) {
+                const name = params.path[params.path.length - 1];
+                renderContent(name, n.content, getFileExtension(name));
+            }
+        }
+        function load(file) {
+            if (!file) return;
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!VIDEO_EXTS.includes(ext) && !AUDIO_EXTS.includes(ext) && !IMAGE_EXTS.includes(ext)) return;
+            renderContent(file.name, URL.createObjectURL(file), ext);
+            sound.play('click');
+        }
+        up.onclick = () => {
+            const inp = document.createElement('input'); inp.type = 'file';
+            inp.accept = 'audio/*,video/*,image/*';
+            inp.onchange = e => load(e.target.files[0]); inp.click();
+        };
+        up.addEventListener('dragover', e => { e.preventDefault(); up.style.borderColor = '#007aff'; });
+        up.addEventListener('dragleave', () => up.style.borderColor = 'rgba(255,255,255,0.15)');
+        up.addEventListener('drop', e => { e.preventDefault(); up.style.borderColor = 'rgba(255,255,255,0.15)'; load(e.dataTransfer.files[0]); });
+    }
+};
+
+// ---- PAINT ----
+apps.paint = {
+    get title() { return t('paint'); },
+    icon: '🎨', width: 560, height: 460,
+    render: function(body) {
+        body.className = 'app-paint';
+        body.innerHTML = `
+            <div class="tools">
+                <button data-tool="clear">🗑️ ${t('clear')}</button>
+                <button data-tool="screenshot">📷 ${t('screenshot')}</button>
+                <input type="color" id="p-color" value="#000000" />
+                <input type="range" id="p-size" min="1" max="20" value="3" style="width:80px;" />
+            </div>
+            <canvas id="p-canvas"></canvas>`;
+        const canvas = document.getElementById('p-canvas');
+        const ctx = canvas.getContext('2d');
+        let draw = false, lx, ly, color = '#000000', size = 3;
+        function resize() { canvas.width = canvas.clientWidth || 500; canvas.height = 300; ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+        setTimeout(resize, 50);
+        function pos(e) { const r = canvas.getBoundingClientRect(); return { x: (e.clientX || e.touches?.[0]?.clientX) - r.left, y: (e.clientY || e.touches?.[0]?.clientY) - r.top }; }
+        canvas.addEventListener('mousedown', e => { draw = true; const p = pos(e); lx = p.x; ly = p.y; });
+        canvas.addEventListener('mousemove', e => { if (!draw) return; const p = pos(e); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.strokeStyle = color; ctx.lineWidth = size; ctx.lineCap = 'round'; ctx.stroke(); lx = p.x; ly = p.y; });
+        canvas.addEventListener('mouseup', () => draw = false);
+        canvas.addEventListener('mouseleave', () => draw = false);
+        document.getElementById('p-color').oninput = e => color = e.target.value;
+        document.getElementById('p-size').oninput = e => size = +e.target.value;
+        body.querySelectorAll('[data-tool]').forEach(el => {
+            el.onclick = () => {
+                if (el.dataset.tool === 'clear') { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+                else {
+                    const flash = document.getElementById('screenshot-flash');
+                    flash.classList.add('active'); setTimeout(() => flash.classList.remove('active'), 150);
+                    const link = document.createElement('a');
+                    link.download = 'screenshot_' + Date.now() + '.png';
+                    link.href = canvas.toDataURL('image/png'); link.click();
+                }
+            };
+        });
+    }
+};
+
+// ---- CMD ----
+apps.cmd = {
+    get title() { return t('cmd'); },
+    icon: '⌨️', width: 560, height: 400,
+    render: function(body) {
+        body.className = 'app-cmd';
+        body.innerHTML = `
+            <div class="cmd-output" id="cmd-out">${t('cmd_welcome')}\n${t('cmd_type_help')}\n</div>
+            <div class="cmd-input">
+                <span style="color:#8be9fd;font-family:monospace;">C:\\&gt;</span>
+                <input type="text" id="cmd-in" autofocus />
+                <button id="cmd-go">OK</button>
+            </div>`;
+        const out = document.getElementById('cmd-out');
+        const inp = document.getElementById('cmd-in');
+        const cmds = {
+            help: () => 'help, echo, cls, time, date, ver, whoami, dir, mkdir, del, calc, notepad, paint',
+            echo: a => a.join(' '),
+            cls: () => { out.textContent = ''; return ''; },
+            time: () => new Date().toTimeString(),
+            date: () => new Date().toDateString(),
+            ver: () => 'MarfaOS 12.0.22621',
+            whoami: () => 'user@marfaos',
+            dir: () => { const n = getFileSystemNode(state.currentPath); return Object.keys(n.children || {}).join('\n') || 'Empty'; },
+            mkdir: a => { if (!a[0]) return 'Specify name'; const n = getFileSystemNode(state.currentPath); if (n.children[a[0]]) return 'Exists'; n.children[a[0]] = { type: 'folder', label: a[0], children: {} }; saveState(); renderDesktopIcons(); return 'Created'; },
+            del: a => { if (!a[0]) return 'Specify name'; const n = getFileSystemNode(state.currentPath); if (!n.children[a[0]]) return 'Not found'; delete n.children[a[0]]; saveState(); renderDesktopIcons(); return 'Deleted'; },
+            calc: () => { openApp('calculator'); return 'OK'; },
+            notepad: () => { openApp('notepad'); return 'OK'; },
+            paint: () => { openApp('paint'); return 'OK'; }
+        };
+        function run() {
+            const line = inp.value.trim(); if (!line) return;
+            const parts = line.split(/\s+/); const cmd = parts[0].toLowerCase(); const args = parts.slice(1);
+            let res = '';
+            try { res = cmds[cmd] ? (cmds[cmd](args) || '') : `'${cmd}' is not a command`; } catch(e) { res = 'Error: ' + e.message; }
+            out.textContent += `\nC:\\> ${line}\n${res}\n`;
+            out.scrollTop = out.scrollHeight;
+            inp.value = ''; sound.play('click');
+        }
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+        document.getElementById('cmd-go').onclick = run;
+        setTimeout(() => inp.focus(), 100);
+    }
+};
+
+// ---- CONTROL PANEL ----
+apps.controlpanel = {
+    get title() { return t('controlpanel'); },
+    icon: '⚙️', width: 720, height: 580,
+    render: function(body) {
+        body.innerHTML = `
+            <div class="cp-tabs">
+                <button class="tab active" data-tab="system">🖥️ ${t('cp_system')}</button>
+                <button class="tab" data-tab="storage">💾 ${t('cp_storage')}</button>
+                <button class="tab" data-tab="activation">🔑 ${t('cp_activation')}</button>
+                <button class="tab" data-tab="personalization">🎨 ${t('cp_personalization')}</button>
+            </div>
+            <div class="cp-content">
+                <div class="cp-pane active" id="cp-system"></div>
+                <div class="cp-pane" id="cp-storage"></div>
+                <div class="cp-pane" id="cp-activation"></div>
+                <div class="cp-pane" id="cp-personalization"></div>
+            </div>`;
+        body.querySelectorAll('.tab').forEach(tab => {
+            tab.onclick = () => {
+                body.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                body.querySelectorAll('.cp-pane').forEach(p => p.classList.remove('active'));
+                document.getElementById('cp-' + tab.dataset.tab).classList.add('active');
+                sound.play('click');
+            };
+        });
+
+        // SYSTEM
+        document.getElementById('cp-system').innerHTML = `
+            <h3 style="margin-bottom:12px;font-weight:500;">🔊 ${t('sound')}</h3>
+            <div class="setting-row"><span class="label">${t('audio_output')}</span>
+                <select style="background:rgba(255,255,255,0.06);border:none;border-radius:6px;padding:4px 10px;color:#ddd;font-size:13px;">
+                    <option>${t('system_default')}</option><option>${t('speakers')}</option><option>${t('headphones')}</option><option>HDMI</option>
+                </select>
+            </div>
+            <div class="setting-row"><span class="label">${t('volume')}</span>
+                <input type="range" min="0" max="100" value="70" id="vol" style="width:200px;" />
+                <span id="vol-l">70%</span>
+            </div>
+            <div class="setting-row"><span class="label">${t('test_sound')}</span>
+                <button onclick="sound.play('notification')" style="background:rgba(255,255,255,0.08);border:none;border-radius:6px;padding:4px 16px;color:#ddd;cursor:pointer;">🔊 ${t('play')}</button>
+            </div>
+            <hr style="border-color:rgba(255,255,255,0.06);margin:16px 0;" />
+            <h3 style="margin-bottom:12px;font-weight:500;">💻 ${t('pc_info')}</h3>
+            <div class="pc-info">
+                <div class="info-item"><span class="key">${t('cpu')}</span><span class="val">Intel Core i9-14900K</span></div>
+                <div class="info-item"><span class="key">${t('cores')}</span><span class="val">24</span></div>
+                <div class="info-item"><span class="key">${t('threads')}</span><span class="val">32</span></div>
+                <div class="info-item"><span class="key">${t('gpu')}</span><span class="val">NVIDIA RTX 4090</span></div>
+                <div class="info-item"><span class="key">${t('vram')}</span><span class="val">24 GB GDDR6X</span></div>
+                <div class="info-item"><span class="key">${t('storage')}</span><span class="val">Samsung 990 PRO 2TB</span></div>
+                <div class="info-item"><span class="key">${t('ram')}</span><span class="val">64 GB DDR5</span></div>
+                <div class="info-item"><span class="key">${t('motherboard')}</span><span class="val">ASUS ROG Z790</span></div>
+            </div>`;
+        setTimeout(() => { const v = document.getElementById('vol'); if (v) v.oninput = function() { document.getElementById('vol-l').textContent = this.value + '%'; }; }, 50);
+
+        // STORAGE
+        function calcSize(node) {
+            if (!node) return 0;
+            if (node.type === 'file') return node.size || (node.content ? node.content.length : 0);
+            let s = 0;
+            if (node.children) for (const c of Object.values(node.children)) s += calcSize(c);
+            return s;
+        }
+        const total = 512 * 1024 * 1024 * 1024;
+        let used = 0;
+        for (const d of Object.values(state.fileSystem)) used += calcSize(d);
+        const pct = Math.min(100, (used/total)*100);
+        document.getElementById('cp-storage').innerHTML = `
+            <h3 style="margin-bottom:8px;font-weight:500;">💾 ${t('disks')}</h3>
+            <div class="storage-bar"><div class="fill" style="width:${pct}%;"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:12px;">
+                <span>${t('used')}: ${formatFileSize(used)}</span>
+                <span>${t('free')}: ${formatFileSize(total-used)}</span>
+                <span>${t('total')}: ${formatFileSize(total)}</span>
+            </div>
+            <div class="disk-item"><span>💾 ${t('disk_x')}</span><span>${formatFileSize(total)}</span></div>
+            <div class="disk-item"><span>📁 ${t('marfaos')}</span><span>${formatFileSize(calcSize(getFileSystemNode(['X:','MarfaOS'])))}</span></div>
+            <div class="disk-item"><span>🖥️ ${t('desktop')}</span><span>${formatFileSize(calcSize(getFileSystemNode(['X:','Desktop'])))}</span></div>`;
+
+        // ACTIVATION
+        document.getElementById('cp-activation').innerHTML = `
+            <div style="text-align:center;padding:20px 0;">
+                <div style="font-size:48px;">✅</div>
+                <h3 style="margin:12px 0;">${t('activated')}</h3>
+                <div style="background:rgba(0,255,0,0.08);padding:8px 24px;border-radius:8px;border:1px solid rgba(0,255,0,0.15);display:inline-block;">
+                    ${t('license_by')} <b>Kotomarf</b>
+                </div>
+                <div style="font-size:13px;opacity:0.6;margin-top:12px;">MarfaOS 12 Pro<br>${t('version')} 12.0.22621.1000</div>
+            </div>`;
+
+        // PERSONALIZATION
+        const wallpapers = {
+            default: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+            dark: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 50%, #2d2d2d 100%)',
+            gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            ocean: 'linear-gradient(135deg, #0c3483 0%, #a2b6df 100%)',
+            forest: 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)',
+            space: 'linear-gradient(135deg, #0b0b2b 0%, #1a1a4e 50%, #2d1b69 100%)'
+        };
+        document.getElementById('cp-personalization').innerHTML = `
+            <div class="perso-grid">
+                <div class="card">
+                    <div class="title">🌐 ${t('language')}</div>
+                    <div style="font-size:12px;opacity:0.7;margin-bottom:8px;">${t('language_desc')}</div>
+                    <div class="option-group" id="lang-group">
+                        <span class="opt ${state.language==='en'?'active':''}" data-lang="en">🇬🇧 English</span>
+                        <span class="opt ${state.language==='ru'?'active':''}" data-lang="ru">🇷🇺 Русский</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="title">${t('taskbar')}</div>
+                    <div class="option-group" id="tb-pos">
+                        <span class="opt ${state.taskbarPosition==='bottom'?'active':''}" data-pos="bottom">${t('bottom')}</span>
+                        <span class="opt ${state.taskbarPosition==='top'?'active':''}" data-pos="top">${t('top')}</span>
+                        <span class="opt ${state.taskbarPosition==='left'?'active':''}" data-pos="left">${t('left')}</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="title">${t('accent_color')}</div>
+                    <div class="color-palette" id="acc">
+                        ${['#007aff','#ff2d55','#ff9500','#ffcc00','#34c759','#5ac8fa','#af52de','#ff6b6b'].map(c => `<span class="c ${c===state.accentColor?'active':''}" style="background:${c};" data-c="${c}"></span>`).join('')}
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="title">${t('wallpaper_url')}</div>
+                    <div class="url-input-group">
+                        <input type="text" id="wp-url" placeholder="https://..." value="${state.wallpaperUrl || ''}" />
+                        <button id="wp-apply">${t('apply')}</button>
+                    </div>
+                </div>
+                <div class="card" style="grid-column:1/3;">
+                    <div class="title">${t('builtin_wallpapers')}</div>
+                    <div class="wallpaper-opt" id="wp-list">
+                        ${Object.entries(wallpapers).map(([k, v]) => `<div class="wp ${k===state.wallpaper?'active':''}" data-w="${k}" style="background:${v};"></div>`).join('')}
+                    </div>
+                </div>
+                <div class="card" style="grid-column:1/3;">
+                    <div class="title">${t('website_shortcuts')}</div>
+                    <div style="font-size:12px;opacity:0.7;margin-bottom:8px;">
+                        ${t('shortcuts_added')} <b>${state.websiteShortcuts.length}</b>
+                    </div>
+                    <button class="btn btn-primary" id="add-shortcut-from-cp">🌐 ${t('add_shortcut')}</button>
+                </div>
+                <div class="card" style="grid-column:1/3;">
+                    <div class="title">${t('export_import')}</div>
+                    <div style="font-size:12px;opacity:0.7;margin-bottom:12px;">${t('export_desc')}</div>
+                    <div class="btn-group" style="margin-bottom:8px;">
+                        <button class="btn btn-primary" id="export-full">${t('export_full')}</button>
+                        <button class="btn btn-success" id="import-backup">${t('import_backup')}</button>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" id="export-shortcuts">${t('export_shortcuts_only')}</button>
+                        <button class="btn btn-secondary" id="export-files">${t('export_files_only')}</button>
+                    </div>
+                    <div style="margin-top:12px;font-size:11px;opacity:0.5;">
+                        ${t('save_to_downloads')}<br>
+                        ${t('current_size')} <b>${formatFileSize(JSON.stringify(state).length)}</b>
+                    </div>
+                </div>
+                <div class="card" style="grid-column:1/3;">
+                    <div class="title">${t('danger_zone')}</div>
+                    <div style="font-size:12px;opacity:0.7;margin-bottom:8px;">${t('danger_desc')}</div>
+                    <button class="btn btn-danger" id="reset-all">${t('reset_all')}</button>
+                </div>
+            </div>`;
+
+        // LANGUAGE
+        document.getElementById('lang-group').querySelectorAll('[data-lang]').forEach(el => {
+            el.onclick = () => {
+                const newLang = el.dataset.lang;
+                if (newLang === state.language) return;
+                state.language = newLang;
+                saveState();
+                // Закрываем ВСЕ окна и перерисовываем интерфейс
+                for (const id of Object.keys(state.windows)) closeWindow(id);
+                document.getElementById('cp-personalization') && 0; // placeholder
+                // Перерисовываем всё
+                document.getElementById('start-menu').classList.remove('open');
+                renderDesktopIcons();
+                renderStartMenu();
+                updateTaskbar();
+                sound.play('notification');
+                // Закрываем окно панели управления после перерисовки
+                setTimeout(() => {
+                    showAlert(t('language'), t('language_desc'));
+                }, 200);
+            };
+        });
+
+        document.getElementById('tb-pos').querySelectorAll('[data-pos]').forEach(el => {
+            el.onclick = () => {
+                document.getElementById('tb-pos').querySelectorAll('[data-pos]').forEach(x => x.classList.remove('active'));
+                el.classList.add('active');
+                state.taskbarPosition = el.dataset.pos;
+                document.getElementById('taskbar').className = el.dataset.pos;
+                saveState();
+            };
+        });
+        document.getElementById('acc').querySelectorAll('[data-c]').forEach(el => {
+            el.onclick = () => {
+                document.getElementById('acc').querySelectorAll('[data-c]').forEach(x => x.classList.remove('active'));
+                el.classList.add('active');
+                state.accentColor = el.dataset.c;
+                saveState();
+            };
+        });
+        document.getElementById('wp-list').querySelectorAll('[data-w]').forEach(el => {
+            el.onclick = () => {
+                document.getElementById('wp-list').querySelectorAll('[data-w]').forEach(x => x.classList.remove('active'));
+                el.classList.add('active');
+                state.wallpaper = el.dataset.w; state.wallpaperUrl = null;
+                document.getElementById('wp-url').value = '';
+                applyWallpaper(wallpapers[state.wallpaper]);
+                saveState();
+            };
+        });
+        document.getElementById('wp-apply').onclick = () => {
+            const url = document.getElementById('wp-url').value.trim();
+            if (url) {
+                state.wallpaperUrl = url; state.wallpaper = 'custom';
+                document.getElementById('wp-list').querySelectorAll('[data-w]').forEach(x => x.classList.remove('active'));
+                applyWallpaper(`url("${url}")`);
+                saveState();
+            }
+        };
+        document.getElementById('add-shortcut-from-cp').onclick = async () => {
+            const r = await openShortcutDialog(null);
+            if (r) { state.websiteShortcuts.push(r); saveState(); renderDesktopIcons();
+                showAlert(t('done'), `"${r.name}" ${t('added_to_desktop')}`); }
+        };
+        document.getElementById('export-full').onclick = exportFullBackup;
+        document.getElementById('import-backup').onclick = importBackup;
+        document.getElementById('export-shortcuts').onclick = exportShortcutsOnly;
+        document.getElementById('export-files').onclick = exportFilesOnly;
+        document.getElementById('reset-all').onclick = () => {
+            if (!confirm(t('reset_all') + '?')) return;
+            localStorage.removeItem(STORAGE_KEY);
+            location.reload();
+        };
+    }
+};
+
+// ============================================================
+//  EXPORT / IMPORT
+// ============================================================
+function downloadBlob(filename, content) {
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function exportFullBackup() {
+    const backup = {
+        _meta: { version: '1.0', os: 'MarfaOS 12', exportedAt: new Date().toISOString() },
+        language: state.language,
+        fileSystem: state.fileSystem, pinnedApps: state.pinnedApps,
+        wallpaper: state.wallpaper, wallpaperUrl: state.wallpaperUrl,
+        accentColor: state.accentColor, taskbarPosition: state.taskbarPosition,
+        websiteShortcuts: state.websiteShortcuts
+    };
+    const fn = `marfaos-backup_${new Date().toISOString().slice(0,10)}.json`;
+    downloadBlob(fn, JSON.stringify(backup, null, 2));
+    sound.play('notification');
+    showAlert(t('export_done'), t('export_saved'));
+}
+function exportShortcutsOnly() {
+    const d = { _meta: { type: 'website-shortcuts', exportedAt: new Date().toISOString() }, websiteShortcuts: state.websiteShortcuts };
+    downloadBlob(`marfaos-shortcuts_${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(d, null, 2));
+    sound.play('notification');
+    showAlert(t('export_shortcuts_title'), `Count: ${state.websiteShortcuts.length}`);
+}
+function exportFilesOnly() {
+    const d = { _meta: { type: 'file-system', exportedAt: new Date().toISOString() }, fileSystem: state.fileSystem };
+    downloadBlob(`marfaos-files_${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(d, null, 2));
+    sound.play('notification');
+    showAlert(t('export_files_title'), 'OK');
+}
+function importBackup() { document.getElementById('import-file-input').click(); }
+function handleImportFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (data.websiteShortcuts && !data.fileSystem) {
+                showConfirm(t('import_backup'), `Count: ${data.websiteShortcuts.length}. Replace?`).then(ok => {
+                    if (ok) { state.websiteShortcuts = data.websiteShortcuts; saveState(); renderDesktopIcons(); }
+                });
+                return;
+            }
+            if (data.fileSystem) {
+                showConfirm(t('import_backup'), 'Replace all data?').then(ok => {
+                    if (ok) {
+                        state.fileSystem = data.fileSystem;
+                        state.language = data.language || state.language;
+                        state.pinnedApps = data.pinnedApps || state.pinnedApps;
+                        state.wallpaper = data.wallpaper || state.wallpaper;
+                        state.wallpaperUrl = data.wallpaperUrl || null;
+                        state.accentColor = data.accentColor || state.accentColor;
+                        state.taskbarPosition = data.taskbarPosition || state.taskbarPosition;
+                        state.websiteShortcuts = data.websiteShortcuts || state.websiteShortcuts;
+                        saveState();
+                        location.reload();
+                    }
+                });
+            }
+        } catch (err) { showAlert(t('import_error'), t('import_parse_error') + err.message); }
+    };
+    reader.readAsText(file);
+}
+
+// ============================================================
+//  SHORTCUT DIALOG
+// ============================================================
+function openShortcutDialog(existing) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('form-overlay');
+        const bodyEl = document.getElementById('form-body');
+        document.getElementById('form-title').textContent = existing ? t('edit_shortcut') : t('new_shortcut_title');
+        document.getElementById('form-cancel').textContent = t('cancel');
+        document.getElementById('form-save').textContent = t('save');
+
+        const data = existing ? { ...existing } : {
+            id: 'sc_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+            name: '', url: '', icon: '🌐', color: '#007aff'
+        };
+
+        bodyEl.innerHTML = `
+            <div class="form-row"><label>${t('name')}</label>
+                <input type="text" id="sc-name" placeholder="${t('name_placeholder')}" value="${escapeHtml(data.name)}" maxlength="40" /></div>
+            <div class="form-row"><label>${t('url')}</label>
+                <input type="text" id="sc-url" placeholder="${t('url_placeholder')}" value="${escapeHtml(data.url)}" /></div>
+            <div class="form-row"><label>${t('icon_label')}</label>
+                <div class="emoji-picker" id="sc-emoji">
+                    ${PRESET_EMOJIS.map(e => `<button class="emoji-btn ${e===data.icon?'active':''}" data-emoji="${e}">${e}</button>`).join('')}
+                </div></div>
+            <div class="form-row"><label>${t('color_label')}</label>
+                <div class="color-picker-row" id="sc-color">
+                    ${PRESET_COLORS.map(c => `<div class="swatch ${c===data.color?'active':''}" data-color="${c}" style="background:${c};"></div>`).join('')}
+                </div></div>
+            <div class="form-row"><label>${t('preview')}</label>
+                <div class="preview-box">
+                    <div class="icon-box" id="sc-prev-icon" style="background:${data.color};">${data.icon}</div>
+                    <div><div class="preview-name" id="sc-prev-name">${escapeHtml(data.name) || t('no_name')}</div>
+                        <div class="preview-url" id="sc-prev-url">${escapeHtml(data.url) || t('url_not_set')}</div></div>
+                </div></div>`;
+
+        const updatePrev = () => {
+            const i = document.getElementById('sc-prev-icon');
+            i.textContent = data.icon; i.style.background = data.color;
+            document.getElementById('sc-prev-name').textContent = data.name || t('no_name');
+            document.getElementById('sc-prev-url').textContent = data.url || t('url_not_set');
+        };
+        bodyEl.querySelectorAll('[data-emoji]').forEach(b => {
+            b.onclick = () => { bodyEl.querySelectorAll('[data-emoji]').forEach(x => x.classList.remove('active')); b.classList.add('active'); data.icon = b.dataset.emoji; updatePrev(); };
+        });
+        bodyEl.querySelectorAll('[data-color]').forEach(s => {
+            s.onclick = () => { bodyEl.querySelectorAll('[data-color]').forEach(x => x.classList.remove('active')); s.classList.add('active'); data.color = s.dataset.color; updatePrev(); };
+        });
+        const nameI = document.getElementById('sc-name');
+        const urlI = document.getElementById('sc-url');
+        nameI.oninput = () => { data.name = nameI.value; updatePrev(); };
+        urlI.oninput = () => { data.url = urlI.value; updatePrev(); };
+        setTimeout(() => nameI.focus(), 50);
+
+        document.getElementById('form-cancel').onclick = () => { overlay.classList.remove('open'); sound.play('click'); resolve(null); };
+        document.getElementById('form-save').onclick = () => {
+            const n = nameI.value.trim(); let u = urlI.value.trim();
+            if (!n) { showAlert(t('error'), t('enter_name')); return; }
+            if (!u) { showAlert(t('error'), t('enter_url')); return; }
+            if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+            data.name = n; data.url = u;
+            overlay.classList.remove('open'); sound.play('notification');
+            resolve(data);
+        };
+        overlay.classList.add('open');
+    });
+}
+
+// ============================================================
+//  START MENU
+// ============================================================
+function getAppsList() {
+    return [
+        { id: 'explorer', icon: '📂', label: t('explorer') },
+        { id: 'calculator', icon: '🔢', label: t('calculator') },
+        { id: 'notepad', icon: '📝', label: t('notepad') },
+        { id: 'mediaplayer', icon: '🎵', label: t('mediaplayer') },
+        { id: 'paint', icon: '🎨', label: t('paint') },
+        { id: 'cmd', icon: '⌨️', label: t('cmd') },
+        { id: 'controlpanel', icon: '⚙️', label: t('controlpanel') }
+    ];
+}
+function renderStartMenu() {
+    const list = document.getElementById('start-apps-list');
+    const pinned = document.getElementById('start-pinned-list');
+    const searchInput = document.getElementById('start-search');
+    searchInput.placeholder = t('search_apps');
+    const appsL = getAppsList();
+    list.innerHTML = '';
+    appsL.forEach(a => {
+        const el = document.createElement('div');
+        el.className = 'app-item';
+        el.innerHTML = `<span class="icon">${a.icon}</span> ${a.label}`;
+        el.onclick = () => { openApp(a.id); closeStartMenu(); };
+        list.appendChild(el);
+    });
+    pinned.innerHTML = `<div class="pinned-title">${t('pinned')}</div>`;
+    state.pinnedApps.forEach(id => {
+        const app = appsL.find(a => a.id === id);
+        if (!app) return;
+        const el = document.createElement('div');
+        el.className = 'pinned-item';
+        el.innerHTML = `<span class="icon">${app.icon}</span> ${app.label}`;
+        el.onclick = () => { openApp(app.id); closeStartMenu(); };
+        pinned.appendChild(el);
+    });
+    searchInput.oninput = () => {
+        const q = searchInput.value.toLowerCase().trim();
+        list.querySelectorAll('.app-item').forEach(el => { el.style.display = el.textContent.toLowerCase().includes(q) ? 'flex' : 'none'; });
+        pinned.querySelectorAll('.pinned-item').forEach(el => { el.style.display = el.textContent.toLowerCase().includes(q) ? 'flex' : 'none'; });
+    };
+}
+function openStartMenu() {
+    const m = document.getElementById('start-menu');
+    if (m.classList.contains('open')) { closeStartMenu(); return; }
+    renderStartMenu();
+    m.classList.add('open');
+}
+function closeStartMenu() { document.getElementById('start-menu').classList.remove('open'); }
+document.getElementById('start-btn').onclick = openStartMenu;
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('start-menu');
+    const btn = document.getElementById('start-btn');
+    if (menu.classList.contains('open') && !menu.contains(e.target) && !btn.contains(e.target)) closeStartMenu();
+});
+
+// ============================================================
+//  DESKTOP
+// ============================================================
+function renderDesktopIcons() {
+    const container = document.getElementById('desktop-icons');
+    container.innerHTML = '';
+    const appsL = getAppsList();
+
+    appsL.forEach(a => {
+        const el = document.createElement('div');
+        el.className = 'desktop-icon';
+        el.innerHTML = `<span class="icon">${a.icon}</span><span class="label">${a.label}</span>`;
+        el.onclick = () => openApp(a.id);
+        el.oncontextmenu = (e) => { e.preventDefault(); showDesktopMenu(e.clientX, e.clientY); };
+        container.appendChild(el);
+    });
+
+    state.websiteShortcuts.forEach(sc => {
+        const el = document.createElement('div');
+        el.className = 'desktop-icon website-shortcut';
+        el.innerHTML = `<div class="icon-box" style="background:${sc.color};">${sc.icon}</div><span class="label">${escapeHtml(sc.name)}</span>`;
+        el.title = sc.url;
+        el.onclick = () => { window.open(sc.url, '_blank'); sound.play('click'); };
+        el.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); showShortcutMenu(e.clientX, e.clientY, sc); };
+        container.appendChild(el);
+    });
+
+    const desktopNode = getFileSystemNode(['X:', 'Desktop']);
+    if (desktopNode && desktopNode.children) {
+        Object.entries(desktopNode.children).forEach(([name, item]) => {
+            const isFolder = item.type === 'folder';
+            const el = document.createElement('div');
+            el.className = 'desktop-icon';
+            el.innerHTML = `<span class="icon">${isFolder ? '📁' : getFileIcon(name)}</span><span class="label">${escapeHtml(name)}</span>`;
+            el.ondblclick = () => {
+                if (isFolder) { state.currentPath = ['X:', 'Desktop', name]; openApp('explorer'); }
+                else openFileByPath(['X:', 'Desktop', name]);
+            };
+            el.oncontextmenu = (e) => { e.preventDefault(); showDesktopMenu(e.clientX, e.clientY); };
+            container.appendChild(el);
+        });
+    }
+}
+
+function showShortcutMenu(x, y, sc) {
+    const menu = document.getElementById('desktop-context');
+    menu.style.display = 'block';
+    menu.style.left = x + 'px'; menu.style.top = y + 'px';
+    menu.innerHTML = `
+        <div class="item" data-sc="open"><span class="icon">🌐</span> ${t('open_in_new_tab')}</div>
+        <div class="item" data-sc="copy-url"><span class="icon">📋</span> ${t('copy_url')}</div>
+        <div class="sep"></div>
+        <div class="item" data-sc="edit"><span class="icon">✏️</span> ${t('edit')}</div>
+        <div class="item" data-sc="duplicate"><span class="icon">📄</span> ${t('duplicate')}</div>
+        <div class="sep"></div>
+        <div class="item" data-sc="delete"><span class="icon">🗑️</span> ${t('delete')}</div>`;
+    menu.querySelectorAll('[data-sc]').forEach(el => {
+        el.onclick = () => {
+            menu.style.display = 'none';
+            const act = el.dataset.sc;
+            if (act === 'open') { window.open(sc.url, '_blank'); sound.play('click'); }
+            else if (act === 'copy-url') {
+                navigator.clipboard.writeText(sc.url).then(() => showAlert('OK', sc.url)).catch(() => showAlert('OK', sc.url));
+            } else if (act === 'edit') {
+                openShortcutDialog(sc).then(r => {
+                    if (r) {
+                        const idx = state.websiteShortcuts.findIndex(s => s.id === sc.id);
+                        if (idx >= 0) state.websiteShortcuts[idx] = r;
+                        saveState(); renderDesktopIcons();
+                    }
+                });
+            } else if (act === 'duplicate') {
+                const c = { ...sc, id: 'sc_' + Date.now() + '_' + Math.random().toString(36).slice(2,6), name: sc.name + ' (copy)' };
+                state.websiteShortcuts.push(c); saveState(); renderDesktopIcons();
+            } else if (act === 'delete') {
+                if (confirm(`${t('delete')} "${sc.name}"?`)) {
+                    state.websiteShortcuts = state.websiteShortcuts.filter(s => s.id !== sc.id);
+                    saveState(); renderDesktopIcons();
+                }
+            }
+        };
+    });
+    setTimeout(() => document.addEventListener('click', function c() { menu.style.display = 'none'; document.removeEventListener('click', c); }, { once: true }), 10);
+}
+
+function showDesktopMenu(x, y) {
+    const menu = document.getElementById('desktop-context');
+    menu.style.display = 'block';
+    menu.style.left = x + 'px'; menu.style.top = y + 'px';
+    menu.innerHTML = `
+        <div class="item" data-action="new-folder"><span class="icon">📁</span> ${t('new_folder')}</div>
+        <div class="item" data-action="new-text"><span class="icon">📄</span> ${t('new_text')}</div>
+        <div class="item" data-action="new-shortcut"><span class="icon">🌐</span> ${t('new_shortcut')}</div>
+        <div class="sep"></div>
+        <div class="item" data-action="refresh"><span class="icon">🔄</span> ${t('refresh')}</div>
+        <div class="item" data-action="paste"><span class="icon">📋</span> ${t('paste')}</div>
+        <div class="sep"></div>
+        <div class="item" data-action="personalize"><span class="icon">⚙️</span> ${t('personalize')}</div>`;
+    menu.querySelectorAll('[data-action]').forEach(el => {
+        el.onclick = async () => {
+            menu.style.display = 'none';
+            const action = el.dataset.action;
+            const node = getFileSystemNode(['X:', 'Desktop']);
+            if (!node) return;
+            if (!node.children) node.children = {};
+            if (action === 'new-folder') {
+                const name = prompt(t('new_folder') + ':');
+                if (name && name.trim() && !node.children[name.trim()]) {
+                    node.children[name.trim()] = { type: 'folder', label: name.trim(), children: {} };
+                    saveState(); renderDesktopIcons();
+                }
+            } else if (action === 'new-text') {
+                const name = prompt(t('new_text') + ':');
+                if (name && name.trim()) {
+                    const fn = name.includes('.') ? name.trim() : name.trim() + '.txt';
+                    if (!node.children[fn]) {
+                        node.children[fn] = { type: 'file', label: fn, content: '' };
+                        saveState(); renderDesktopIcons();
+                        openApp('notepad', { path: ['X:', 'Desktop', fn] });
+                    }
+                }
+            } else if (action === 'new-shortcut') {
+                const r = await openShortcutDialog(null);
+                if (r) { state.websiteShortcuts.push(r); saveState(); renderDesktopIcons();
+                    showAlert(t('done'), `"${r.name}" ${t('added_to_desktop')}`); }
+            } else if (action === 'refresh') renderDesktopIcons();
+            else if (action === 'paste' && state.clipboard) {
+                const s = state.clipboard;
+                if (!node.children[s.name]) {
+                    node.children[s.name] = JSON.parse(JSON.stringify(s.data));
+                    if (s.cut) { const p = getFileSystemNode(s.source); if (p && p.children) delete p.children[s.name]; }
+                    state.clipboard = null;
+                    saveState(); renderDesktopIcons();
+                }
+            } else if (action === 'personalize') openApp('controlpanel');
+            sound.play('click');
+        };
+    });
+    setTimeout(() => document.addEventListener('click', function c() { menu.style.display = 'none'; document.removeEventListener('click', c); }, { once: true }), 10);
+}
+
+document.getElementById('desktop').oncontextmenu = (e) => { e.preventDefault(); showDesktopMenu(e.clientX, e.clientY); };
+
+// ============================================================
+//  WALLPAPER
+// ============================================================
+const wallpapersMap = {
+    default: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+    dark: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 50%, #2d2d2d 100%)',
+    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    ocean: 'linear-gradient(135deg, #0c3483 0%, #a2b6df 100%)',
+    forest: 'linear-gradient(135deg, #134e5e 0%, #71b280 100%)',
+    space: 'linear-gradient(135deg, #0b0b2b 0%, #1a1a4e 50%, #2d1b69 100%)'
+};
+function applyWallpaper(style) {
+    const d = document.getElementById('desktop');
+    d.style.background = style;
+    d.style.backgroundSize = 'cover';
+    d.style.backgroundPosition = 'center';
+}
+
+// ============================================================
+//  IMPORT HANDLER
+// ============================================================
+document.getElementById('import-file-input').addEventListener('change', function() {
+    const f = this.files[0];
+    if (f) handleImportFile(f);
+    this.value = '';
+});
+
+// ============================================================
+//  INIT
+// ============================================================
+renderDesktopIcons();
+if (state.wallpaper === 'custom' && state.wallpaperUrl) applyWallpaper(`url("${state.wallpaperUrl}")`);
+else applyWallpaper(wallpapersMap[state.wallpaper] || wallpapersMap.default);
+document.getElementById('taskbar').className = state.taskbarPosition || 'bottom';
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeStartMenu();
+        document.getElementById('desktop-context').style.display = 'none';
+        document.getElementById('form-overlay').classList.remove('open');
+    }
+});
+
+setTimeout(() => { showAlert(t('welcome_title'), t('welcome_msg')); }, 600);
+
+window.MarfaOS = { state, apps, openApp, sound, saveState, resetState: () => { localStorage.removeItem(STORAGE_KEY); location.reload(); } };
+console.log('🚀 MarfaOS 12 loaded! Language:', state.language);
+</script>
+</body>
+</html>
